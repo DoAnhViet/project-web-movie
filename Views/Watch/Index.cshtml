@@ -3,36 +3,68 @@
     ViewData["Title"] = Model?.Movie?.Name ?? "Xem phim";
 }
 
-<main id="main-contents" class="col-xs-12 col-sm-12 col-md-12">
+<style>
+    .player-container {
+        background: #000;
+        margin: 0 0 20px 0;
+        width: 100%;
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    }
+    .player-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .episode-item {
+        display: inline-block;
+        padding: 8px 15px;
+        margin: 5px;
+        background: #3d3d3d;
+        color: #fff;
+        border-radius: 5px;
+        text-decoration: none;
+    }
+    .episode-item:hover, .episode-item.active {
+        background: #ff6b35;
+        color: #fff;
+    }
+</style>
+
+<div class="container-fluid mt-3">
     @if (Model != null && Model.Movie != null)
     {
         var movie = Model.Movie;
         var firstEpisode = Model.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault();
         
-        <section class="movie-info">
-            <div class="player-container">
-                @if (firstEpisode != null && !string.IsNullOrEmpty(firstEpisode.LinkEmbed))
-                {
-                    <iframe id="iframe-player"
-                            width="100%"
-                            height="500"
-                            src="@firstEpisode.LinkEmbed"
-                            frameborder="0"
-                            allowfullscreen
-                            allow="autoplay">
-                    </iframe>
-                }
-                else
-                {
-                    <div class="alert alert-warning">
-                        <p>Không tìm thấy link xem phim</p>
-                    </div>
-                }
+        <div class="row">
+            <div class="col-12">
+                <div class="player-container">
+                    @if (firstEpisode != null && !string.IsNullOrEmpty(firstEpisode.LinkEmbed))
+                    {
+                        <iframe id="iframe-player"
+                                src="@firstEpisode.LinkEmbed"
+                                frameborder="0"
+                                allowfullscreen
+                                allow="autoplay; encrypted-media">
+                        </iframe>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning m-3">
+                            <i class="fas fa-exclamation-triangle"></i> Không tìm thấy link xem phim
+                        </div>
+                    }
+                </div>
             </div>
-
-            <div class="movie-detail mt-4">
-                <h1 class="movie-title">@movie.Name</h1>
-                <p class="original-title">@movie.OriginName</p>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h2>@movie.Name</h2>
+                <p class="text-muted">@movie.OriginName</p>
                 
                 <div class="movie-meta">
                     @if (!string.IsNullOrEmpty(movie.Quality))
@@ -73,45 +105,58 @@
                         <p><strong>Quốc gia:</strong> @string.Join(", ", movie.Country.Select(c => c.Name))</p>
                     }
                 </div>
-            </div>
 
-            @if (Model.Episodes != null && Model.Episodes.Any())
-            {
-                <div class="episode-list mt-4">
-                    <h3>Danh sách tập phim</h3>
-                    @foreach (var server in Model.Episodes)
-                    {
-                        <div class="server-group">
-                            <h4>@server.ServerName</h4>
-                            <div class="list-episode">
-                                @foreach (var episode in server.ServerDataList)
-                                {
-                                    <a href="#" 
-                                       class="episode-item" 
-                                       data-embed="@episode.LinkEmbed"
-                                       onclick="changeEpisode(this); return false;">
-                                        @episode.Name
-                                    </a>
-                                }
+                @if (Model.Episodes != null && Model.Episodes.Any())
+                {
+                    <div class="mt-4">
+                        <h3>Danh sách tập phim</h3>
+                        @foreach (var server in Model.Episodes)
+                        {
+                            <div class="mb-3">
+                                <h5>@server.ServerName</h5>
+                                <div>
+                                    @foreach (var episode in server.ServerDataList)
+                                    {
+                                        <a href="#" 
+                                           class="episode-item" 
+                                           data-embed="@episode.LinkEmbed"
+                                           data-slug="@episode.Slug"
+                                           onclick="changeEpisode(this); return false;">
+                                            @episode.Name
+                                        </a>
+                                    }
+                                </div>
                             </div>
-                        </div>
-                    }
-                </div>
-            }
-        </section>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
     }
     else
     {
         <div class="alert alert-danger">
-            <p>Không tìm thấy thông tin phim</p>
+            <i class="fas fa-exclamation-circle"></i> Không tìm thấy thông tin phim. 
+            <a href="/Movie/NewMovies" class="alert-link">Quay lại danh sách phim</a>
         </div>
     }
-</main>
+</div>
 
 @section Scripts {
     <script>
+        var currentEpisodeSlug = '@(Model?.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault()?.Slug ?? "")';
+        var movieSlug = '@(Model?.Movie?.Slug ?? "")';
+        var movieTitle = '@(Model?.Movie?.Name ?? "")';
+        var posterUrl = '@(Model?.Movie?.PosterUrl ?? "")';
+        var currentEpisodeName = '@(Model?.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault()?.Name ?? "Tập 1")';
+        var saveProgressInterval;
+        var isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
         function changeEpisode(element) {
             var embedUrl = element.getAttribute('data-embed');
+            var episodeSlug = element.getAttribute('data-slug') || '';
+            var episodeName = element.textContent.trim();
+            
             if (embedUrl) {
                 document.getElementById('iframe-player').src = embedUrl;
                 
@@ -122,7 +167,117 @@
                 
                 // Add active class to clicked episode
                 element.classList.add('active');
+                
+                // Update current episode info
+                currentEpisodeSlug = episodeSlug;
+                currentEpisodeName = episodeName;
+                
+                // Reset progress tracking for new episode
+                if (isAuthenticated) {
+                    loadWatchProgress();
+                }
             }
         }
+
+        // Lấy tiến trình xem đã lưu
+        function loadWatchProgress() {
+            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
+            
+            fetch(`/Watch/GetWatchProgress?movieSlug=${movieSlug}&episodeSlug=${currentEpisodeSlug}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.currentTime > 0) {
+                        console.log(`Đã tìm thấy tiến trình: ${data.currentTime}s (${data.progressPercent}%)`);
+                        // Hiển thị thông báo hoặc tự động seek đến vị trí đã xem
+                        showResumeNotification(data.currentTime);
+                    }
+                })
+                .catch(error => console.error('Error loading progress:', error));
+        }
+
+        // Hiển thị thông báo tiếp tục xem
+        function showResumeNotification(currentTime) {
+            var minutes = Math.floor(currentTime / 60);
+            var seconds = currentTime % 60;
+            var timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            var notification = `
+                <div class="alert alert-info alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
+                    <strong><i class="fas fa-play-circle"></i> Tiếp tục xem?</strong>
+                    <p class="mb-2">Bạn đã xem đến ${timeStr}. Bạn có muốn tiếp tục?</p>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="this.parentElement.remove();">
+                        <i class="fas fa-check"></i> OK
+                    </button>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', notification);
+            
+            // Auto dismiss after 10 seconds
+            setTimeout(() => {
+                var alerts = document.querySelectorAll('.alert-info');
+                alerts.forEach(alert => alert.remove());
+            }, 10000);
+        }
+
+        // Lưu tiến trình xem
+        function saveWatchProgress(currentTime, totalTime) {
+            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
+            
+            var data = {
+                movieSlug: movieSlug,
+                movieTitle: movieTitle,
+                posterUrl: posterUrl,
+                episodeName: currentEpisodeName,
+                episodeSlug: currentEpisodeSlug,
+                currentTime: Math.floor(currentTime),
+                totalTime: Math.floor(totalTime)
+            };
+            
+            fetch('/Watch/SaveWatchProgress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Đã lưu tiến trình xem:', Math.floor(currentTime), 'giây');
+                }
+            })
+            .catch(error => console.error('Error saving progress:', error));
+        }
+
+        // Lắng nghe sự kiện từ iframe (nếu player hỗ trợ)
+        // Vì iframe embed nên không thể trực tiếp track, nhưng có thể save định kỳ
+        if (isAuthenticated) {
+            // Load progress khi vào trang
+            loadWatchProgress();
+            
+            // Lưu tiến trình mỗi 30 giây (giả định user đang xem)
+            var watchTime = 0;
+            @if (ViewBag.WatchHistory != null)
+            {
+                <text>watchTime = @ViewBag.WatchHistory.CurrentTime;</text>
+            }
+            
+            saveProgressInterval = setInterval(function() {
+                watchTime += 30; // Tăng 30 giây
+                var estimatedTotal = watchTime + 600; // Giả định còn 10 phút
+                saveWatchProgress(watchTime, estimatedTotal);
+            }, 30000); // Mỗi 30 giây
+        }
+
+        // Cleanup khi thoát trang
+        window.addEventListener('beforeunload', function() {
+            if (saveProgressInterval) {
+                clearInterval(saveProgressInterval);
+            }
+        });
     </script>
 }

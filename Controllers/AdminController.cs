@@ -2,131 +2,24 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using WebMovie.Models;
-using WebMovie.Services;
 
 namespace WebMovie.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
-        private readonly IMovieService _movieService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminController(IMovieService movieService, UserManager<ApplicationUser> userManager)
+        public AdminController(UserManager<ApplicationUser> userManager)
         {
-            _movieService = movieService;
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var movies = await _movieService.GetAllMoviesAsync();
             var users = _userManager.Users.ToList();
-            
-            ViewBag.TotalMovies = movies.Count;
             ViewBag.TotalUsers = users.Count;
-            ViewBag.RecentMovies = movies.Take(5).ToList();
-            
             return View();
-        }
-
-        // Quản lý phim
-        public async Task<IActionResult> ManageMovies()
-        {
-            var movies = await _movieService.GetAllMoviesAsync();
-            return View(movies);
-        }
-
-        [HttpGet]
-        public IActionResult CreateMovie()
-        {
-            return View(new MovieViewModel());
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateMovie(MovieViewModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                var movie = new Movie
-                {
-                    Title = model.Title,
-                    Genre = model.Genre,
-                    Country = model.Country,
-                    Year = model.Year,
-                    Description = model.Description,
-                    PosterUrl = model.PosterUrl,
-                    TrailerUrl = model.TrailerUrl,
-                    VideoUrl = model.VideoUrl
-                };
-
-                await _movieService.CreateMovieAsync(movie);
-                TempData["SuccessMessage"] = "Phim đã được thêm thành công!";
-                return RedirectToAction("ManageMovies");
-            }
-            return View(model);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> EditMovie(int id)
-        {
-            var movie = await _movieService.GetMovieByIdAsync(id);
-            if (movie == null) return NotFound();
-
-            var model = new MovieViewModel
-            {
-                Id = movie.Id,
-                Title = movie.Title,
-                Genre = movie.Genre,
-                Country = movie.Country,
-                Year = movie.Year,
-                Description = movie.Description,
-                PosterUrl = movie.PosterUrl,
-                TrailerUrl = movie.TrailerUrl,
-                VideoUrl = movie.VideoUrl
-            };
-
-            return View(model);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> EditMovie(MovieViewModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                var movie = new Movie
-                {
-                    Id = model.Id,
-                    Title = model.Title,
-                    Genre = model.Genre,
-                    Country = model.Country,
-                    Year = model.Year,
-                    Description = model.Description,
-                    PosterUrl = model.PosterUrl,
-                    TrailerUrl = model.TrailerUrl,
-                    VideoUrl = model.VideoUrl
-                };
-
-                await _movieService.UpdateMovieAsync(movie);
-                TempData["SuccessMessage"] = "Phim đã được cập nhật thành công!";
-                return RedirectToAction("ManageMovies");
-            }
-            return View(model);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteMovie(int id)
-        {
-            var result = await _movieService.DeleteMovieAsync(id);
-            if (result)
-            {
-                TempData["SuccessMessage"] = "Phim đã được xóa thành công!";
-            }
-            else
-            {
-                TempData["ErrorMessage"] = "Không thể xóa phim!";
-            }
-            return RedirectToAction("ManageMovies");
         }
 
         // Quản lý người dùng

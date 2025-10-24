@@ -16,14 +16,10 @@ public class HomeController : Controller
         _movieApiService = movieApiService;
     }
 
-    public async Task<IActionResult> Index(int page = 1)
+    public IActionResult Index()
     {
-        var moviesResponse = await _movieApiService.GetNewMoviesAsync(page);
-        if (moviesResponse == null)
-        {
-            return View("Error");
-        }
-        return View(moviesResponse);
+        // Trang chủ đơn giản - frontend team sẽ làm UI
+        return View();
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
