@@ -1,0 +1,91 @@
+@model WebMovie.Models.MovieViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa phim";
+    ViewData["Breadcrumb"] = "Chỉnh sửa phim";
+    Layout = "_AdminLayout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Thông tin phim</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditMovie" method="post">
+                        <input asp-for="Id" type="hidden" />
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Title" class="form-label"></label>
+                                    <input asp-for="Title" class="form-control" />
+                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Year" class="form-label"></label>
+                                    <input asp-for="Year" class="form-control" />
+                                    <span asp-validation-for="Year" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Genre" class="form-label"></label>
+                                    <input asp-for="Genre" class="form-control" />
+                                    <span asp-validation-for="Genre" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Country" class="form-label"></label>
+                                    <input asp-for="Country" class="form-control" />
+                                    <span asp-validation-for="Country" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PosterUrl" class="form-label"></label>
+                            <input asp-for="PosterUrl" class="form-control" />
+                            <span asp-validation-for="PosterUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TrailerUrl" class="form-label"></label>
+                            <input asp-for="TrailerUrl" class="form-control" />
+                            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="VideoUrl" class="form-label"></label>
+                            <input asp-for="VideoUrl" class="form-control" />
+                            <span asp-validation-for="VideoUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/Admin/ManageMovies" class="btn btn-secondary me-md-2">Hủy</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Cập nhật phim
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

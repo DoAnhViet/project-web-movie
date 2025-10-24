@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hoạt Hình 3D - @ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/WebMovie.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <img src="~/images/logo.png" alt="Hoạt Hình 3D" class="logo-image" />
+                </a>
+                <div class="search-box">
+                    <input type="text" placeholder="Search..." class="search-input">
+                    <button type="submit" class="search-button"><i class="fas fa-search"></i></button>
+                </div>
+                <div class="header-actions">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> @User.Identity.Name
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Thông tin cá nhân</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-history"></i> Lịch sử xem</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-bookmark"></i> Danh sách yêu thích</a></li>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/Admin"><i class="fas fa-cog"></i> Quản trị</a></li>
+                                }
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                        <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login" class="btn btn-outline-light me-2"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                        <a href="/Account/Register" class="btn btn-primary"><i class="fas fa-user-plus"></i> Đăng ký</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </header>
+    <nav class="main-nav">
+        <div class="container">
+            <ul class="nav-menu">
+                <li><a href="/"><i class="fas fa-home"></i> Trang chủ</a></li>
+                <li><a href="/Movie"><i class="fas fa-film"></i> Danh sách phim</a></li>
+                <li><a href="/Movie/Search"><i class="fas fa-search"></i> Tìm kiếm</a></li>
+                <li><a href="/Movie?genre=hoat-hinh"><i class="fas fa-star"></i> Hoạt hình</a></li>
+                <li><a href="/Movie?country=viet-nam"><i class="fas fa-flag"></i> Việt Nam</a></li>
+                <li><a href="/Movie?country=han-quoc"><i class="fas fa-flag"></i> Hàn Quốc</a></li>
+                <li><a href="/Movie?country=trung-quoc"><i class="fas fa-flag"></i> Trung Quốc</a></li>
+                <li><a href="/Movie?country=nhat-ban"><i class="fas fa-flag"></i> Nhật Bản</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - WebMovie - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

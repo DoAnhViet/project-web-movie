@@ -1,0 +1,53 @@
+﻿@model List<WebMovie.Models.ApiMovie>
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<main id="main-contents" class="col-xs-12 col-sm-12 col-md-8">
+    <section>
+        <div class="section-bar clearfix">
+            <h3 class="section-title">
+                <span>Phim Đang Chiếu</span>
+            </h3>
+        </div>
+        <div class="halim_box">
+            @if (Model != null && Model.Any())
+            {
+                @foreach (var movie in Model.Take(8))
+                {
+                    <article class="col-md-3 col-sm-3 col-xs-6 thumb grid-item">
+                        <div class="halim-item">
+                            <a class="halim-thumb" href="/Movie/Detail/@movie.Slug">
+                                <figure>
+                                    <img class="img-responsive" src="@movie.ThumbUrl" alt="@movie.Name" title="@movie.Name">
+                                </figure>
+                                <span class="status">@movie.Quality</span>
+                                @if (!string.IsNullOrEmpty(movie.EpisodeTotal))
+                                {
+                                    <span class="episode">@movie.EpisodeTotal</span>
+                                }
+                                <div class="icon_overlay"></div>
+                                <div class="halim-post-title-box">
+                                    <div class="halim-post-title">
+                                        <h2 class="entry-title">@movie.Name</h2>
+                                        @if (!string.IsNullOrEmpty(movie.OriginName))
+                                        {
+                                            <p class="original_title">@movie.OriginName</p>
+                                        }
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </article>
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-film fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Đang tải phim...</h4>
+                </div>
+            }
+        </div>
+    </section>
+</main>

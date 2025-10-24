@@ -1,0 +1,84 @@
+@{
+    ViewData["Title"] = "Dashboard Quản trị";
+    Layout = "_AdminLayout";
+}
+
+<!-- Dashboard content -->
+
+    <!-- Thống kê tổng quan -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@ViewBag.TotalMovies</h4>
+                            <p class="mb-0">Tổng số phim</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-film fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@ViewBag.TotalUsers</h4>
+                            <p class="mb-0">Tổng số người dùng</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phim gần đây -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock"></i> Phim gần đây</h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.RecentMovies != null && ((List<WebMovie.Models.Movie>)ViewBag.RecentMovies).Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Tiêu đề</th>
+                                        <th>Thể loại</th>
+                                        <th>Năm</th>
+                                        <th>Quốc gia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var movie in (List<WebMovie.Models.Movie>)ViewBag.RecentMovies)
+                                    {
+                                        <tr>
+                                            <td>@movie.Title</td>
+                                            <td>@movie.Genre</td>
+                                            <td>@movie.Year</td>
+                                            <td>@movie.Country</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Chưa có phim nào trong hệ thống.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>

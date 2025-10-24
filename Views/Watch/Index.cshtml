@@ -1,0 +1,128 @@
+@model WebMovie.Models.MovieDetailResponse
+@{
+    ViewData["Title"] = Model?.Movie?.Name ?? "Xem phim";
+}
+
+<main id="main-contents" class="col-xs-12 col-sm-12 col-md-12">
+    @if (Model != null && Model.Movie != null)
+    {
+        var movie = Model.Movie;
+        var firstEpisode = Model.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault();
+        
+        <section class="movie-info">
+            <div class="player-container">
+                @if (firstEpisode != null && !string.IsNullOrEmpty(firstEpisode.LinkEmbed))
+                {
+                    <iframe id="iframe-player"
+                            width="100%"
+                            height="500"
+                            src="@firstEpisode.LinkEmbed"
+                            frameborder="0"
+                            allowfullscreen
+                            allow="autoplay">
+                    </iframe>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <p>Không tìm thấy link xem phim</p>
+                    </div>
+                }
+            </div>
+
+            <div class="movie-detail mt-4">
+                <h1 class="movie-title">@movie.Name</h1>
+                <p class="original-title">@movie.OriginName</p>
+                
+                <div class="movie-meta">
+                    @if (!string.IsNullOrEmpty(movie.Quality))
+                    {
+                        <span class="quality">@movie.Quality</span>
+                    }
+                    @if (!string.IsNullOrEmpty(movie.EpisodeCurrent))
+                    {
+                        <span class="episode">@movie.EpisodeCurrent</span>
+                    }
+                    @if (movie.Year > 0)
+                    {
+                        <span class="year">@movie.Year</span>
+                    }
+                </div>
+
+                <div class="movie-description mt-3">
+                    <h3>Nội dung phim</h3>
+                    <p class="content">@Html.Raw(movie.Content)</p>
+                    
+                    @if (movie.Actor != null && movie.Actor.Any())
+                    {
+                        <p><strong>Diễn viên:</strong> @string.Join(", ", movie.Actor)</p>
+                    }
+                    
+                    @if (movie.Director != null && movie.Director.Any())
+                    {
+                        <p><strong>Đạo diễn:</strong> @string.Join(", ", movie.Director)</p>
+                    }
+                    
+                    @if (movie.Category != null && movie.Category.Any())
+                    {
+                        <p><strong>Thể loại:</strong> @string.Join(", ", movie.Category.Select(c => c.Name))</p>
+                    }
+                    
+                    @if (movie.Country != null && movie.Country.Any())
+                    {
+                        <p><strong>Quốc gia:</strong> @string.Join(", ", movie.Country.Select(c => c.Name))</p>
+                    }
+                </div>
+            </div>
+
+            @if (Model.Episodes != null && Model.Episodes.Any())
+            {
+                <div class="episode-list mt-4">
+                    <h3>Danh sách tập phim</h3>
+                    @foreach (var server in Model.Episodes)
+                    {
+                        <div class="server-group">
+                            <h4>@server.ServerName</h4>
+                            <div class="list-episode">
+                                @foreach (var episode in server.ServerDataList)
+                                {
+                                    <a href="#" 
+                                       class="episode-item" 
+                                       data-embed="@episode.LinkEmbed"
+                                       onclick="changeEpisode(this); return false;">
+                                        @episode.Name
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            <p>Không tìm thấy thông tin phim</p>
+        </div>
+    }
+</main>
+
+@section Scripts {
+    <script>
+        function changeEpisode(element) {
+            var embedUrl = element.getAttribute('data-embed');
+            if (embedUrl) {
+                document.getElementById('iframe-player').src = embedUrl;
+                
+                // Remove active class from all episodes
+                document.querySelectorAll('.episode-item').forEach(function(item) {
+                    item.classList.remove('active');
+                });
+                
+                // Add active class to clicked episode
+                element.classList.add('active');
+            }
+        }
+    </script>
+}

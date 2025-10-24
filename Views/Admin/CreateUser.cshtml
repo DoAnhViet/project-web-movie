@@ -1,0 +1,69 @@
+@model WebMovie.Models.CreateUserViewModel
+@{
+    ViewData["Title"] = "Thêm người dùng mới";
+    ViewData["Breadcrumb"] = "Thêm người dùng mới";
+    Layout = "_AdminLayout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-plus"></i> Thêm người dùng mới</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateUser" method="post">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label"></label>
+                                <input asp-for="FullName" class="form-control" />
+                                <span asp-validation-for="FullName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="Role" class="form-label"></label>
+                                <select asp-for="Role" class="form-select">
+                                    <option value="User">User</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                                <span asp-validation-for="Role" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="/Admin/ManageUsers" class="btn btn-secondary me-md-2">Hủy</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Tạo người dùng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
