@@ -5,11 +5,53 @@
   border: none !important;
 }
 
+.halim-schedule-block>li>a,
+.halim-schedule-block-mobile>li>a {
+    /* center content and stack label + subtitle */
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    padding: 12px 18px;
+    background: #333;
+    margin: 4px;
+    color: #fff;
+    min-width: 130px; /* increased width per request */
+    box-sizing: border-box;
+    /* rounded corners and smooth hover */
+    border-radius: 10px;
+    transition: background-color 160ms ease, transform 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Center the schedule list and allow wrapping on small screens */
+.halim-schedule-block {
+    display: flex;
+    justify-content: center; /* center items horizontally */
+    align-items: center;
+    gap: 8px; /* spacing between items */
+    padding-left: 0; /* remove default ul padding */
+    margin: 0 auto 12px auto; /* center the list block */
+    list-style: none;
+    flex-wrap: wrap; /* allow wrap on small screens */
+}
+
+.halim-schedule-block > li {
+    display: inline-block; /* keep li sizing inline */
+}
+
+/* Responsive: reduce schedule item width on small screens */
+@media (max-width: 576px) {
+    .halim-schedule-block>li>a,
+    .halim-schedule-block-mobile>li>a {
+        min-width: 64px;
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
 html {
   font-size: 14px;
   margin: 0;
   padding: 0;
-  overflow-y: scroll; /* Luôn hiển thị thanh cuộn dọc để tránh layout shift */
 }
 
 body {
@@ -25,6 +67,14 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+.section-title span {
+    display: inline-block;
+    color: #ffffff;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 24px;
+    box-sizing: border-box;
+}
   padding: 0 15px;
   box-sizing: border-box;
 }
@@ -39,20 +89,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
   height: 40px;
 }
 
 .logo {
-  flex-shrink: 0;
-  display: block;
-  height: 100%;
-}
-
-.logo-image {
-  height: 100%;
-  width: auto;
-  display: block;
+    /* make the weekday label centered and larger */
+    display: block;
+    margin: 0 auto 6px auto;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1;
+    box-sizing: border-box;
 }
 
 .search-box {
@@ -61,6 +111,30 @@ body {
   align-items: center;
   background: #2d2d2d;
   border-radius: 5px;
+.halim-schedule-block>li>a {
+    /* ensure multi-line remains centered */
+    line-height: 1.1;
+}
+
+/* Make the subtitle (Vietnamese weekday) slightly larger and centered */
+.halim-schedule-block>li>a,
+.halim-schedule-block-mobile>li>a {
+    font-size: 14px;
+}
+
+.halim-schedule-block>li>a br {
+    content: ""; /* noop, keep line break */
+}
+
+/* Hover and active states: lift and highlight the selected day */
+.halim-schedule-block>li.active>a,
+.halim-schedule-block>li:hover>a {
+    background: linear-gradient(90deg,#ff7a7a,#ffbf69);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    border-radius: 12px;
+}
   padding: 5px 10px;
   max-width: 500px;
   height: 100%;
@@ -199,6 +273,54 @@ html {
     height: 100%;
 }
 
+/* ------------------------------
+   SECTION-TITLE STYLES (inserted)
+   Marker start: --SECTION-TITLE-START--
+   Purpose: larger, bold headings for section titles such as
+   "Đang thịnh hành" and "Mới Cập Nhật".
+------------------------------ */
+
+.section-title {
+    font-size: 24px;      /* increased size -> 24px as requested */
+    line-height: 1.1;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    display: block;
+    font-weight: 800;     /* stronger bold */
+    color: #ffffff;
+}
+
+/* ------------------------------
+   SECTION-TITLE SPAN STYLES (inserted)
+   Marker start: --SECTION-TITLE-SPAN-START--
+------------------------------ */
+
+.section-title span {
+    position: relative;
+}
+
+.section-title span {
+    float: left;
+    font-size: 18px; /* increased span size */
+    padding: 10px 0;
+    color: #a5cbef;
+    background: -webkit-gradient(linear, left top, right top, from(#ff8a00), to(#da1b60));
+    background: linear-gradient(to right, #ff8a00, #ff2070);
+    background-clip: text; /* standard property for compatibility */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    font-weight: 900; /* stronger weight for emphasis */
+}
+
+/* Marker end: --SECTION-TITLE-SPAN-END--
+   ------------------------------ */
+
+/* Marker end: --SECTION-TITLE-END--
+   ------------------------------ */
+
+
 .halim-thumb img {
     width: 100%;
     height: 100%;
@@ -298,6 +420,89 @@ html {
 .mt-5 {
     margin-top: 3rem;
 }
+
+/* ------------------------------
+   HALIM TRENDING SLIDER STYLES
+   Marker start: --TRENDING-SLIDER-START--
+------------------------------ */
+.halim-trending-container {
+    width: 100%;
+}
+.halim-trending-track {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding: 12px 6px;
+    cursor: grab;
+}
+.halim-trending-track:active {
+    cursor: grabbing;
+}
+.halim-trending-card {
+    flex: 0 0 auto; 
+    width: 220px;
+    background: transparent;
+}
+.halim-trending-poster-image {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+
+
+.halim-trending-info {
+    padding-top: 8px;
+    color: #ffffff;
+}
+.halim-trending-title-text {
+    font-size: 16px; 
+    color: #ffffff;
+    font-weight: 700;
+    margin: 6px 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 150px;
+}
+.halim-trending-original-title {
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 150px;
+}
+
+/* Rank number shown before a trending movie title */
+.halim-trending-number {
+    line-height: 1;
+    font-size: 3.5em;
+    font-weight: 800;
+    font-style: italic;
+    background: linear-gradient(39deg, #fecf59, #fff1cc);
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: #fff0;
+    margin-right: .5rem;
+    flex-shrink: 0;
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.halim-trending-card a { text-decoration: none; color: inherit; }
+/* hide default scrollbar on WebKit */
+.halim-trending-track::-webkit-scrollbar { height: 8px; }
+.halim-trending-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
+
+/* Marker end: --TRENDING-SLIDER-END-- */
   
 
 .header-content {
@@ -372,6 +577,93 @@ html {
 .header-actions a:hover {
     color: #f7e57f;
 }
+
+/* ------------------------------
+   SCHEDULE-BLOCK LINK STYLES (inserted)
+   Marker start: --SCHEDULE-BLOCK-START--
+------------------------------ */
+
+.halim-schedule-block>li>a,
+.halim-schedule-block-mobile>li>a {
+    padding: 5px 10px;
+    background: #333;
+    margin: 1px;
+    color: #fff;
+}
+
+/* Marker end: --SCHEDULE-BLOCK-END--
+   ------------------------------ */
+
+/* ------------------------------
+    SCHEDULE BOLD LABEL BOX (inserted)
+    Marker start: --SCHEDULE-BOLD-BOX-START--
+------------------------------ */
+
+/* Make the bold weekday label (the inner span) sit in a gray pill/box */
+.halim-schedule-block>li>a span,
+.halim-schedule-block-mobile.menu.schedule>li>a span,
+.halim-schedule-block-mobile.menu.schedule li a span {
+     display: inline-block;
+     background: #4a4a4a; /* gray box */
+     color: #ffffff;
+     padding: 6px 10px;
+     border-radius: 6px;
+     font-weight: 700;
+     font-size: 14px;
+     line-height: 1;
+     box-sizing: border-box;
+}
+
+/* Small spacing so the line below (weekday text) doesn't stick to the pill */
+.halim-schedule-block>li>a span + br,
+.halim-schedule-block-mobile.menu.schedule>li>a span + br,
+.halim-schedule-block-mobile.menu.schedule li a span + br {
+     margin-bottom: 4px;
+}
+
+/* Marker end: --SCHEDULE-BOLD-BOX-END--
+    ------------------------------ */
+
+
+/* ------------------------------
+   ADDITIONAL LAYOUT RESET & NAV STYLES (inserted)
+   Marker start: --LAYOUT-RESET-START--
+------------------------------ */
+
+.halim-schedule-block, .mt-3 {
+    margin-top: 15px;
+}
+
+.nav-justified {
+    width: 100%;
+}
+.nav {
+    margin-bottom: 0;
+    padding-left: 0;
+    list-style: none;
+}
+ul, ol {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+*, :after, :before {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+/* Note: the browser's user-agent stylesheet (default UL rules) is not inserted as CSS here.
+   If you want to override list defaults further, tell me and I'll add explicit rules. */
+
+/* Marker end: --LAYOUT-RESET-END--
+   ------------------------------ */
+
+
   
 
 .material-icons-menu {
@@ -398,6 +690,8 @@ html {
 /* Main Navigation */
 .main-nav {
     background: #1c1c1c;
+
+
     border-bottom: 1px solid #333;
     padding: 10px 0;
 }
@@ -472,4 +766,89 @@ footer.footer {
   background: #1c1c1c !important;
   color: #fff !important;
   border-top: 1px solid #333;
+}
+
+/* Custom login modal styles */
+.custom-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1050;
+    padding: 20px;
+}
+.custom-login .custom-login-content {
+    background: linear-gradient(135deg, #1c1f2a, #262b3a);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    width: 400px;
+    max-width: 90%;
+    text-align: center;
+    position: relative;
+    color: #e6e9ef;
+}
+.custom-close {
+    position: absolute;
+    right: 14px;
+    top: 12px;
+    color: #b9becd;
+    cursor: pointer;
+    font-size: 20px;
+}
+.custom-login-title {
+    margin: 0 0 12px 0;
+    font-size: 22px;
+    color: #fff;
+}
+.google-login-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #2f3240;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 14px;
+    cursor: pointer;
+}
+.custom-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin: 8px 0;
+    box-sizing: border-box;
+}
+.custom-checkbox-label {
+    display: block;
+    text-align: left;
+    margin: 8px 0 14px 0;
+    color: #cbd2e1;
+}
+.custom-checkbox {
+    margin-right: 8px;
+}
+.custom-submit {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: linear-gradient(90deg,#ff6b6b,#ff9a9a);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+.custom-message {
+    margin-top: 10px;
+    color: #ffb3b3;
+}
+
+@media (max-width: 480px) {
+    .custom-login .custom-login-content { padding: 18px; }
 }

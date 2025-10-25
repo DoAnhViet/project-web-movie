@@ -16,10 +16,19 @@ public class HomeController : Controller
         _movieApiService = movieApiService;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index(int page)
     {
-        // Trang chủ đơn giản - frontend team sẽ làm UI
-        return View();
+
+        try
+        {
+            var moviesResponse = await _movieApiService.GetNewMoviesAsync(page);
+            return View(moviesResponse);
+        }
+        catch
+        {
+            // Nếu lỗi khi gọi API, trả về view rỗng để không crash
+            return View();
+        }
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -27,4 +36,29 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+    public async Task<IActionResult> Detail(string slug)
+        {
+            if (string.IsNullOrEmpty(slug))
+            {
+                return RedirectToAction("NewMovies", "Movie");
+            }
+
+            try
+            {
+                var movieDetail = await _movieApiService.GetMovieDetailAsync(slug);
+                
+                if (movieDetail == null || movieDetail.Movie == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy phim này!";
+                    return RedirectToAction("NewMovies", "Movie");
+                }
+
+                return View(movieDetail);
+            }
+            catch
+            {
+                return RedirectToAction("NewMovies", "Movie");
+            }
+        }
+
 }

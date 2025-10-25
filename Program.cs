@@ -12,22 +12,32 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Sử dụng MySQL Cloud từ Aiven
-var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+// Try to read connection string from environment (.env) first, then appsettings
+var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
+                       ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+var useInMemory = false;
 if (string.IsNullOrEmpty(connectionString))
 {
-    throw new InvalidOperationException("DB_CONNECTION_STRING not found in .env file");
+    // If no connection string is provided, fall back to an in-memory database for development so app can start.
+    // This prevents startup from throwing when DB isn't configured.
+    useInMemory = true;
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("WebMovie_Dev_InMemory"));
 }
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(
-        connectionString,
-        ServerVersion.AutoDetect(connectionString),
-        mysqlOptions => mysqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null
-        )
-    ));
+else
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseMySql(
+            connectionString,
+            ServerVersion.AutoDetect(connectionString),
+            mysqlOptions => mysqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null
+            )
+        ));
+}
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -71,7 +81,18 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Seed data
-await DataSeeder.SeedAsync(app.Services);
+// Seed data (only if using a real database)
+if (!useInMemory)
+{
+    try
+    {
+        await DataSeeder.SeedAsync(app.Services);
+    }
+    catch (Exception ex)
+    {
+        // Log and continue; seeding failures shouldn't prevent the app from starting in development.
+        app.Logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 
 app.Run();
