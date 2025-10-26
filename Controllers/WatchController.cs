@@ -6,35 +6,29 @@ using WebMovie.Services;
 
 namespace WebMovie.Controllers
 {
-    public class WatchController : Controller
+    public class WatchController : BaseController
     {
-        private readonly MovieApiService _movieApiService;
         private readonly ApplicationDbContext _context;
 
         public WatchController(MovieApiService movieApiService, ApplicationDbContext context)
+            : base(movieApiService) // ✅ Gọi base constructor
         {
-            _movieApiService = movieApiService;
             _context = context;
         }
 
-        // Xem phim với episode cụ thể - KHÔNG YÊU CẦU ĐĂNG NHẬP
+        // Xem phim
         public async Task<IActionResult> Index(string slug, string? episode)
         {
             if (string.IsNullOrEmpty(slug))
-            {
                 return RedirectToAction("NewMovies", "Movie");
-            }
 
             try
             {
                 var movieDetail = await _movieApiService.GetMovieDetailAsync(slug);
-                
-                if (movieDetail == null || movieDetail.Movie == null)
-                {
+                if (movieDetail?.Movie == null)
                     return RedirectToAction("NewMovies", "Movie");
-                }
 
-                // Nếu user đã login, lấy lịch sử xem
+                // Nếu user đã đăng nhập => lấy lịch sử xem
                 if (User.Identity?.IsAuthenticated == true)
                 {
                     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -57,28 +51,25 @@ namespace WebMovie.Controllers
             }
         }
 
-        // API để lưu/cập nhật lịch sử xem
+        // API lưu tiến trình xem
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> SaveWatchProgress([FromBody] WatchProgressRequest request)
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
-            {
                 return Unauthorized();
-            }
 
             try
             {
                 var watchHistory = await _context.WatchHistories
-                    .FirstOrDefaultAsync(w => 
-                        w.UserId == userId && 
-                        w.MovieSlug == request.MovieSlug && 
+                    .FirstOrDefaultAsync(w =>
+                        w.UserId == userId &&
+                        w.MovieSlug == request.MovieSlug &&
                         w.EpisodeSlug == request.EpisodeSlug);
 
                 if (watchHistory == null)
                 {
-                    // Tạo mới
                     watchHistory = new WatchHistory
                     {
                         UserId = userId,
@@ -96,7 +87,6 @@ namespace WebMovie.Controllers
                 }
                 else
                 {
-                    // Cập nhật
                     watchHistory.CurrentTime = request.CurrentTime;
                     watchHistory.TotalTime = request.TotalTime;
                     watchHistory.LastWatchedAt = DateTime.UtcNow;
@@ -104,7 +94,6 @@ namespace WebMovie.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
                 return Json(new { success = true, message = "Đã lưu tiến trình xem" });
             }
             catch (Exception ex)
@@ -113,46 +102,13 @@ namespace WebMovie.Controllers
             }
         }
 
-        // API để lấy lịch sử xem của một phim
-        [Authorize]
-        [HttpGet]
-        public async Task<IActionResult> GetWatchProgress(string movieSlug, string episodeSlug)
-        {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized();
-            }
-
-            var watchHistory = await _context.WatchHistories
-                .FirstOrDefaultAsync(w => 
-                    w.UserId == userId && 
-                    w.MovieSlug == movieSlug && 
-                    w.EpisodeSlug == episodeSlug);
-
-            if (watchHistory == null)
-            {
-                return Json(new { success = false, currentTime = 0 });
-            }
-
-            return Json(new 
-            { 
-                success = true, 
-                currentTime = watchHistory.CurrentTime,
-                totalTime = watchHistory.TotalTime,
-                progressPercent = watchHistory.ProgressPercent
-            });
-        }
-
-        // API để lấy danh sách lịch sử xem của user
+        // Lịch sử xem
         [Authorize]
         public async Task<IActionResult> History()
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
-            {
                 return RedirectToAction("Login", "Account");
-            }
 
             var histories = await _context.WatchHistories
                 .Where(w => w.UserId == userId)
@@ -164,7 +120,7 @@ namespace WebMovie.Controllers
         }
     }
 
-    // Request model cho việc lưu tiến trình xem
+    // Model lưu tiến trình xem
     public class WatchProgressRequest
     {
         public string MovieSlug { get; set; } = "";

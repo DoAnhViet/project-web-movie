@@ -1,19 +1,59 @@
-﻿@{
+﻿@model WebMovie.Models.HomeViewModel
+@{
     ViewData["Title"] = "Trang chủ";
 }
 
 <div class="container mt-4">
-    <div class="text-center mb-5">
-        <h1 class="display-4">Chào mừng đến với HoạtHình3D</h1>
-        <p class="lead">Xem phim hoạt hình miễn phí, không cần đăng nhập</p>
-        <a href="/Movie/NewMovies" class="btn btn-primary btn-lg">
-            <i class="fas fa-film"></i> Xem Phim Ngay
-        </a>
-    </div>
-    
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> 
-        <strong>Thông báo:</strong> Trang chủ đang được phát triển bởi team frontend. Bạn có thể xem phim tại 
-        <a href="/Movie/NewMovies" class="alert-link">trang Phim Mới Cập Nhật</a>
-    </div>
+    <h2 class="mb-4 text-center">🎬 Phim Mới Cập Nhật</h2>
+
+    @if (Model.TopMovies == null || !Model.TopMovies.Any())
+    {
+        <p class="text-center text-muted">Không có phim mới để hiển thị.</p>
+    }
+    else
+    {
+        <div class="row mb-5">
+            @foreach (var movie in Model.TopMovies)
+            {
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                    <a href="/Movie/Detail?slug=@movie.Slug" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0">
+                            <img src="@movie.PosterUrl" class="card-img-top rounded" alt="@movie.Name" />
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title text-truncate mb-0">@movie.Name</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+
+    <hr />
+
+    <h3 class="mb-4">📺 Danh sách phim</h3>
+
+    @if (Model.AllMovies == null || !Model.AllMovies.Any())
+    {
+        <p class="text-center text-muted">Không có phim nào để hiển thị.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var movie in Model.AllMovies)
+            {
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                    <a href="/Movie/Detail?slug=@movie.Slug" class="text-decoration-none">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <img src="@movie.PosterUrl" class="card-img-top rounded" alt="@movie.Name" />
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title text-truncate mb-0">@movie.Name</h6>
+                                <small class="text-muted">@movie.Year</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
 </div>

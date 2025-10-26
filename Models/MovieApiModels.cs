@@ -191,4 +191,13 @@ namespace WebMovie.Models
         [JsonPropertyName("link_m3u8")]
         public string LinkM3u8 { get; set; }
     }
+
+    public class GenreResponse 
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("slug")]
+        public string Slug { get; set; } = string.Empty;
+    }
 }

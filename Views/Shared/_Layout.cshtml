@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <style>
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .dropdown-menu {
+            background-color: #2d2d2d;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .dropdown-menu .dropdown-item {
+            color: #fff;
+        }
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #3d3d3d;
+            color: #ff6b35;
+        }
         body {
             background-color: #1a1a1a;
             color: #fff;
@@ -154,6 +169,59 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/Movie/NewMovies"><i class="fas fa-film"></i> Phim Mới Cập Nhật</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-film"></i> Thể loại
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
+                            @if (ViewBag.Categories != null)
+                            {
+                                <li class="dropdown-item">@(((List<WebMovie.Models.Category>)ViewBag.Categories)?.Count ?? 0) categories loaded</li>
+                                @foreach (var category in (List<WebMovie.Models.Category>)ViewBag.Categories)
+                                {
+                                    <li>
+                                        <a class="dropdown-item" href="/Movie/Category?slug=@category.Slug">
+                                            @category.Name
+                                        </a>
+                                    </li>
+                                }
+                            }
+                            else 
+                            {
+                                <li class="dropdown-item">No categories loaded</li>
+                            }
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="countryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-globe"></i> Quốc gia
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="countryDropdown">
+                            @if (ViewBag.Countries != null)
+                            {
+                                @foreach (var country in (List<WebMovie.Models.Category>)ViewBag.Countries)
+                                {
+                                    <li>
+                                        <a class="dropdown-item" href="/Movie/Country?slug=@country.Slug">
+                                            @country.Name
+                                        </a>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="dropdown-item">Không có dữ liệu quốc gia</li>
+                            }
+                        </ul>
+                    </li>
+                    <li class="nav-item ms-3">
+                        <form method="get" action="/Movie/Year" class="d-flex align-items-center">
+                            <input type="number" name="year" min="1990" max="@DateTime.Now.Year" placeholder="Năm..." class="form-control form-control-sm" style="width: 100px;" />
+                            <button class="btn btn-sm btn-outline-light ms-2" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </div>
