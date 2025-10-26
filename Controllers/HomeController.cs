@@ -1,64 +1,52 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using WebMovie.Models;
 using WebMovie.Services;
 
-namespace WebMovie.Controllers;
-
-public class HomeController : Controller
+namespace WebMovie.Controllers
 {
-    private readonly ILogger<HomeController> _logger;
-    private readonly MovieApiService _movieApiService;
-
-    public HomeController(ILogger<HomeController> logger, MovieApiService movieApiService)
+    public class HomeController : BaseController
     {
-        _logger = logger;
-        _movieApiService = movieApiService;
-    }
+        private readonly ILogger<HomeController> _logger;
 
-    public async Task<IActionResult> Index(int page)
-    {
-
-        try
+        public HomeController(ILogger<HomeController> logger, MovieApiService movieApiService)
+            : base(movieApiService)
         {
-            var moviesResponse = await _movieApiService.GetNewMoviesAsync(page);
-            return View(moviesResponse);
+            _logger = logger;
         }
-        catch
-        {
-            // Nếu lỗi khi gọi API, trả về view rỗng để không crash
-            return View();
-        }
-    }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-    }
-    public async Task<IActionResult> Detail(string slug)
+        public async Task<IActionResult> Index()
         {
-            if (string.IsNullOrEmpty(slug))
-            {
-                return RedirectToAction("NewMovies", "Movie");
-            }
-
             try
             {
-                var movieDetail = await _movieApiService.GetMovieDetailAsync(slug);
-                
-                if (movieDetail == null || movieDetail.Movie == null)
-                {
-                    TempData["ErrorMessage"] = "Không tìm thấy phim này!";
-                    return RedirectToAction("NewMovies", "Movie");
-                }
+                // Lấy danh sách phim mới cập nhật
+                var moviesResponse = await _movieApiService.GetNewMoviesAsync();
 
-                return View(movieDetail);
+                // Nếu API trả về null thì tránh crash
+                var allMovies = moviesResponse?.Items ?? new List<MovieItem>();
+                var top5 = allMovies.Take(5).ToList();
+
+                // Tạo ViewModel để truyền 2 danh sách ra view
+                var model = new HomeViewModel
+                {
+                    TopMovies = top5,
+                    AllMovies = allMovies
+                };
+
+                return View(model);
             }
-            catch
+            catch (Exception ex)
             {
-                return RedirectToAction("NewMovies", "Movie");
+                _logger.LogError(ex, "Error loading home page movies");
+                ViewBag.ErrorMessage = "Đã xảy ra lỗi khi tải dữ liệu.";
+                return View(new HomeViewModel());
             }
         }
 
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
 }

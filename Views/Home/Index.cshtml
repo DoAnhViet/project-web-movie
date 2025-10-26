@@ -1,148 +1,59 @@
-﻿@model WebMovie.Models.MovieListResponse
+@model WebMovie.Models.HomeViewModel
 @{
     ViewData["Title"] = "Trang chủ";
 }
 
-<main id="main-contents" class="col-xs-12 col-sm-12 col-md-8">
-    <div class="halim-trending-slider">
-        <div class="section-bar clearfix">
-            <h3 class="section-title"> <span><i class="fas fa-fire-alt halim-trending-icon"></i> Đang thịnh hành</span></h3>
-        </div>
-        <div class="halim-trending-container">
-           <div class="halim-trending-track" style="transform: translateZ(0px); backface-visibility: hidden; scroll-behavior: smooth;">
-                @{
-                    var topMovies = new List<WebMovie.Models.MovieItem>();
-                    if (Model?.Items != null)
-                    {
-                        topMovies = Model.Items
-                            .Select(m => new {
-                                Movie = m,
-                                ViewsValue = (m.Views ?? m.View ?? m.ViewCount ?? m.ViewsTotal ?? 0L)
-                            })
-                            .OrderByDescending(x => x.ViewsValue)
-                            .ThenByDescending(x => x.Movie.Year)
-                            .Take(10)
-                            .Select(x => x.Movie)
-                            .ToList();
-                    }
-                }
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">🎬 Phim Mới Cập Nhật</h2>
 
-                @if (topMovies != null && topMovies.Any())
-                {
-                    @for (int i = 0; i < topMovies.Count; i++)
-                    {
-                        var movie = topMovies[i];
-                        <div class="halim-trending-card">
-                            <a href="/Watch?slug=@movie.Slug" class="halim-trending-link">
-                                <div class="halim-trending-poster-container">
-                                    <div class="halim-trending-poster-mask"></div>
-                                    <img src="@movie.PosterUrl" alt="@movie.Name" class="halim-trending-poster-image" loading="lazy" />
-                                    @if (!string.IsNullOrEmpty(movie.Quality))
-                                    {
-                                        <div class="halim-trending-badge">@movie.Quality</div>
-                                    }
-                                </div>
-                                <div class="halim-trending-info" style="display:flex;align-items:center;">
-                                    <div class="halim-trending-number">@((i + 1))</div>
-                                    <div class="halim-trending-details">
-                                        <h3 class="halim-trending-title-text">@movie.Name</h3>
-                                        @if (!string.IsNullOrEmpty(movie.OriginName))
-                                        {
-                                            <p class="halim-trending-original-title">@movie.OriginName</p>
-                                        }
-                                    </div>
-                                </div>
-                            </a>
+    @if (Model.TopMovies == null || !Model.TopMovies.Any())
+    {
+        <p class="text-center text-muted">Không có phim mới để hiển thị.</p>
+    }
+    else
+    {
+        <div class="row mb-5">
+            @foreach (var movie in Model.TopMovies)
+            {
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                    <a href="/Movie/Detail?slug=@movie.Slug" class="text-decoration-none">
+                        <div class="card h-100 shadow-sm border-0">
+                            <img src="@movie.PosterUrl" class="card-img-top rounded" alt="@movie.Name" />
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title text-truncate mb-0">@movie.Name</h6>
+                            </div>
                         </div>
-                    }
-                }
-           </div>
-        </div>
-    </div>
-    <section>
-        <ul class="nav nav-pills nav-justified halim-schedule-block schedule">
-            <li role="presentation" class="active"> <a href="" title="" style="font-weight:600;font-size:16px;text-decoration:none;">Mới<br />Cập Nhật</a></li>
-            <li role="presentation" data-id="thu-hai"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Mon<br />Thứ Hai</a></li>
-            <li role="presentation" data-id="thu-ba"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Tue<br />Thứ Ba</a></li>
-            <li role="presentation" data-id="thu-tu"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Wed<br />Thứ Tư</a></li>
-            <li role="presentation" data-id="thu-nam"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Thu<br />Thứ Năm</a></li>
-            <li role="presentation" data-id="thu-sau"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Fri<br />Thứ Sáu</a></li>
-            <li role="presentation" data-id="thu-bay"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Sat<br />Thứ Bảy</a></li>
-            <li role="presentation" data-id="chu-nhat"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Sun<br />Chủ Nhật</a></li>
-        </ul> 
-            <div class="halim-ajax-popular-post-loading hidden"></div>
-            <div class="section-bar clearfix"><h3 class="section-title"> <span>Mới Cập Nhật</span></h3></div>
-            <div class="row">
-                @if (Model?.Items != null && Model.Items.Any())
-                {
-                    @foreach (var movie in Model.Items)
-                    {
-                        <div class="col-lg-2 col-md-3 col-sm-4 col-6 movie-card">
-                            <a href="/Watch?slug=@movie.Slug">
-                                <div class="position-relative">
-                                    <img src="@movie.PosterUrl" alt="@movie.Name" loading="lazy" />
-                                    @if (!string.IsNullOrEmpty(movie.Quality))
-                                    {
-                                        <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">@movie.Quality</span>
-                                    }
-                                    @if (!string.IsNullOrEmpty(movie.EpisodeCurrent))
-                                    {
-                                        <span class="badge bg-danger position-absolute top-0 end-0 m-2">@movie.EpisodeCurrent</span>
-                                    }
-                                </div>
-                                <div class="movie-title">@movie.Name</div>
-                                @if (!string.IsNullOrEmpty(movie.OriginName))
-                                {
-                                    <div class="text-muted small">@movie.OriginName</div>
-                                }
-                            </a>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="col-12 text-center py-5">
-                        <i class="fas fa-film fa-3x text-muted mb-3"></i>
-                        <h4 class="text-muted">Không tìm thấy phim nào</h4>
-                    </div>
-                }
+                    </a>
                 </div>
-                
-                <!-- Pagination -->
-                @if (Model?.Pagination != null && Model.Pagination.TotalPages > 1)
-                {
-                    <div class="pagination-container text-center mt-4">
-                        <ul class="pagination justify-content-center">
-                            @if (Model.Pagination.CurrentPage > 1)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=@(Model.Pagination.CurrentPage - 1)">
-                                        <i class="fas fa-chevron-left"></i> Trước
-                                    </a>
-                                </li>
-                            }
-                            
-                            @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
-                                i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
-                                i++)
-                            {
-                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
-                                    <a class="page-link" href="?page=@i">@i</a>
-                                </li>
-                            }
-                            
-                            @if (Model.Pagination.CurrentPage < Model.Pagination.TotalPages)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=@(Model.Pagination.CurrentPage + 1)">
-                                        Sau <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                }
-           </div>
+            }
         </div>
-    </section>
-</main>
+    }
+
+    <hr />
+
+    <h3 class="mb-4">📺 Danh sách phim</h3>
+
+    @if (Model.AllMovies == null || !Model.AllMovies.Any())
+    {
+        <p class="text-center text-muted">Không có phim nào để hiển thị.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var movie in Model.AllMovies)
+            {
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-3">
+                    <a href="/Movie/Detail?slug=@movie.Slug" class="text-decoration-none">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <img src="@movie.PosterUrl" class="card-img-top rounded" alt="@movie.Name" />
+                            <div class="card-body text-center p-2">
+                                <h6 class="card-title text-truncate mb-0">@movie.Name</h6>
+                                <small class="text-muted">@movie.Year</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+</div>
