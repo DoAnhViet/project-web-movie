@@ -2,81 +2,58 @@
 @{
     ViewData["Title"] = "Đăng nhập";
 }
+<link rel="stylesheet" href="~/css/account.css" />
 
-<div id="custom-login-modal" class="custom-login active">
-    <div class="custom-login-content">
-        <span id="custom-close-login-modal" class="custom-close">×</span>
-        <h2 class="custom-login-title">Đăng nhập</h2>
+<!-- Gói phần đăng nhập trong khung căn giữa -->
+<div class="account-wrapper">
+    <div class="account-container">
+        <div class="account-card">
+            <h2 class="account-title">Đăng nhập tài khoản</h2>
+            <p class="account-subtitle">Chào mừng bạn quay lại!</p>
 
-        <button id="custom-google-login" class="google-login-button active" type="button">
-            <span class="google-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
-                    <g>
-                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                        <path fill="none" d="M0 0h48v48H0z"></path>
-                    </g>
-                </svg>
-            </span>
-            Đăng nhập bằng Google
-        </button>
+            <form asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
-        <form asp-action="Login" method="post" id="custom-login-form" class="custom-login-form">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="text-danger" style="display:none"></div>
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label">Email</label>
+                    <input asp-for="Email" class="form-control" placeholder="Nhập email của bạn" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
 
-            <input asp-for="Email" id="custom-username" name="username" class="custom-input" placeholder="Tên tài khoản" />
-            <span asp-validation-for="Email" class="text-danger"></span>
+                <div class="form-group">
+                    <label asp-for="Password" class="form-label">Mật khẩu</label>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Nhập mật khẩu" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
 
-            <input asp-for="Password" id="custom-password" name="password" class="custom-input" placeholder="Mật khẩu" />
-            <span asp-validation-for="Password" class="text-danger"></span>
+                <div class="form-check mb-3">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Ghi nhớ đăng nhập</label>
+                </div>
 
-            <label for="custom-remember" class="custom-checkbox-label">
-                <input asp-for="RememberMe" id="custom-remember" name="remember" class="custom-checkbox" /> Ghi nhớ
-            </label>
+                <button type="submit" class="btn-account">Đăng nhập</button>
 
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAABOYJ50RwHQ4oKMP" data-theme="dark" data-language="vi"></div>
+                
+<div class="text-center my-3">
+    <p>Hoặc</p>
+</div>
 
-            <div class="d-grid">
-                <button type="submit" id="custom-login-submit" class="custom-submit active">Đăng nhập</button>
+<a href="~/signin-google" class="btn-google">
+    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" />
+    Đăng nhập bằng Google
+</a>
+            </form>
+
+            <div class="text-center mt-3">
+                <p>Chưa có tài khoản?
+                    <a asp-controller="Account" asp-action="Register" class="account-link">Đăng ký ngay</a>
+                </p>
             </div>
-
-            <div id="custom-login-message" class="custom-message"></div>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-        @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-
-        <script>
-            document.getElementById('custom-close-login-modal')?.addEventListener('click', async function(){
-                document.getElementById('custom-login-modal')?.classList.remove('active');
-
-                try {
-                    // Read antiforgery token from the form
-                    const tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
-                    const token = tokenEl ? tokenEl.value : '';
-
-                    // Send POST to notify server to hide the modal (server will set a cookie)
-                    await fetch('/login/close', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `__RequestVerificationToken=${encodeURIComponent(token)}`
-                    });
-                } catch (err) {
-                    // Non-fatal: keep working client-side even if server request fails
-                    console.warn('Could not notify server to hide login modal:', err);
-                }
-            });
-
-            // Optional: focus username
-            document.getElementById('custom-username')?.focus();
-        </script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }
-
-
