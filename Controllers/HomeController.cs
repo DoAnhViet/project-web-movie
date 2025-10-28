@@ -5,41 +5,29 @@ using WebMovie.Services;
 
 namespace WebMovie.Controllers
 {
-    public class HomeController : BaseController
+    public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly MovieApiService _movieApiService;
 
         public HomeController(ILogger<HomeController> logger, MovieApiService movieApiService)
-            : base(movieApiService)
         {
             _logger = logger;
+            _movieApiService = movieApiService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             try
             {
-                // Lấy danh sách phim mới cập nhật
-                var moviesResponse = await _movieApiService.GetNewMoviesAsync();
-
-                // Nếu API trả về null thì tránh crash
-                var allMovies = moviesResponse?.Items ?? new List<MovieItem>();
-                var top5 = allMovies.Take(5).ToList();
-
-                // Tạo ViewModel để truyền 2 danh sách ra view
-                var model = new HomeViewModel
-                {
-                    TopMovies = top5,
-                    AllMovies = allMovies
-                };
-
-                return View(model);
+                var moviesResponse = await _movieApiService.GetNewMoviesAsync(page);
+                return View(moviesResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading home page movies");
-                ViewBag.ErrorMessage = "Đã xảy ra lỗi khi tải dữ liệu.";
-                return View(new HomeViewModel());
+                _logger.LogError(ex, "Error loading home page");
+                ViewBag.ErrorMessage = "Không thể tải danh sách phim.";
+                return View(new MovieListResponse());
             }
         }
 
