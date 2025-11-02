@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Dashboard Quản trị";
+    Layout = "_AdminLayout";
+}
+
+<!-- Dashboard content -->
+
+    <!-- Thống kê tổng quan -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>@ViewBag.TotalUsers</h4>
+                            <p class="mb-0">Tổng số người dùng</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome message -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Chào mừng đến Admin Panel</h5>
+                </div>
+                <div class="card-body">
+                    <p>Sử dụng menu bên trái để quản lý:</p>
+                    <ul>
+                        <li>Tài khoản người dùng</li>
+                        <li>Tiêu đề phim tùy chỉnh (Việt hóa)</li>
+                        <li>Báo cáo từ người dùng</li>
+                        <li>Thống kê xem phim</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>

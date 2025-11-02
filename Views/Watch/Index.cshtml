@@ -1,0 +1,301 @@
+@model WebMovie.Models.MovieDetailResponse
+@{
+    ViewData["Title"] = Model?.Movie?.Name ?? "Xem phim";
+}
+
+<style>
+    .player-container {
+        background: #000;
+        margin: 0 0 20px 0;
+        width: 100%;
+        position: relative;
+        padding-bottom: 56.25%;
+    }
+    .player-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .episode-item {
+        display: inline-block;
+        padding: 8px 15px;
+        margin: 5px;
+        background: #3d3d3d;
+        color: #fff;
+        border-radius: 5px;
+        text-decoration: none;
+    }
+    .episode-item:hover, .episode-item.active {
+        background: #ff6b35;
+        color: #fff;
+    }
+</style>
+
+<div class="container-fluid mt-3">
+    @if (Model != null && Model.Movie != null)
+    {
+        var movie = Model.Movie;
+        var firstEpisode = Model.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault();
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="player-container">
+                    @if (firstEpisode != null && !string.IsNullOrEmpty(firstEpisode.LinkEmbed))
+                    {
+                        <iframe id="iframe-player"
+                                src="@firstEpisode.LinkEmbed"
+                                frameborder="0"
+                                allowfullscreen
+                                allow="autoplay; encrypted-media">
+                        </iframe>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning m-3">
+                            Không tìm thấy link xem phim
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h2>@movie.Name</h2>
+                <p class="text-muted">@movie.OriginName</p>
+                
+                <!-- NÚT YÊU THÍCH -->
+                <div class="mb-3">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <button id="favorite-btn"
+                                class="btn @(ViewBag.IsFavorite == true ? "btn-danger" : "btn-outline-light") btn-sm me-2"
+                                data-slug="@movie.Slug"
+                                data-name="@movie.Name"
+                                data-poster="@movie.PosterUrl">
+                            <i class="fas @(ViewBag.IsFavorite == true ? "fa" : "far") fa-heart"></i>
+                            <span class="ms-1">@(ViewBag.IsFavorite == true ? "Đã yêu thích" : "Yêu thích")</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login?returnUrl=@Context.Request.Path" class="btn btn-outline-secondary btn-sm me-2">
+                            <i class="far fa-heart"></i> <span class="ms-1">Đăng nhập để yêu thích</span>
+                        </a>
+                    }
+                </div>
+
+                <div class="movie-meta">
+                    @if (!string.IsNullOrEmpty(movie.Quality))
+                    {
+                        <span class="quality">@movie.Quality</span>
+                    }
+                    @if (!string.IsNullOrEmpty(movie.EpisodeCurrent))
+                    {
+                        <span class="episode">@movie.EpisodeCurrent</span>
+                    }
+                    @if (movie.Year > 0)
+                    {
+                        <span class="year">@movie.Year</span>
+                    }
+                </div>
+
+                <div class="movie-description mt-3">
+                    <h3>Nội dung phim</h3>
+                    <p class="content">@Html.Raw(movie.Content)</p>
+                    
+                    @if (movie.Actor != null && movie.Actor.Any())
+                    {
+                        <p><strong>Diễn viên:</strong> @string.Join(", ", movie.Actor)</p>
+                    }
+                    
+                    @if (movie.Director != null && movie.Director.Any())
+                    {
+                        <p><strong>Đạo diễn:</strong> @string.Join(", ", movie.Director)</p>
+                    }
+                    
+                    @if (movie.Category != null && movie.Category.Any())
+                    {
+                        <p><strong>Thể loại:</strong> @string.Join(", ", movie.Category.Select(c => c.Name))</p>
+                    }
+                    
+                    @if (movie.Country != null && movie.Country.Any())
+                    {
+                        <p><strong>Quốc gia:</strong> @string.Join(", ", movie.Country.Select(c => c.Name))</p>
+                    }
+                </div>
+
+                @if (Model.Episodes != null && Model.Episodes.Any())
+                {
+                    <div class="mt-4">
+                        <h3>Danh sách tập phim</h3>
+                        @foreach (var server in Model.Episodes)
+                        {
+                            <div class="mb-3">
+                                <h5>@server.ServerName</h5>
+                                <div>
+                                    @foreach (var episode in server.ServerDataList)
+                                    {
+                                        <a href="#" 
+                                           class="episode-item" 
+                                           data-embed="@episode.LinkEmbed"
+                                           data-slug="@episode.Slug"
+                                           onclick="changeEpisode(this); return false;">
+                                            @episode.Name
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            Không tìm thấy thông tin phim. 
+            <a href="/Movie/NewMovies" class="alert-link">Quay lại danh sách phim</a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script>
+        var currentEpisodeSlug = '@(Model?.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault()?.Slug ?? "")';
+        var movieSlug = '@(Model?.Movie?.Slug ?? "")';
+        var movieTitle = '@(Model?.Movie?.Name ?? "")';
+        var posterUrl = '@(Model?.Movie?.PosterUrl ?? "")';
+        var currentEpisodeName = '@(Model?.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault()?.Name ?? "Tập 1")';
+        var saveProgressInterval;
+        var isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
+        function changeEpisode(element) {
+            var embedUrl = element.getAttribute('data-embed');
+            var episodeSlug = element.getAttribute('data-slug') || '';
+            var episodeName = element.textContent.trim();
+            
+            if (embedUrl) {
+                document.getElementById('iframe-player').src = embedUrl;
+                document.querySelectorAll('.episode-item').forEach(item => item.classList.remove('active'));
+                element.classList.add('active');
+                currentEpisodeSlug = episodeSlug;
+                currentEpisodeName = episodeName;
+                if (isAuthenticated) loadWatchProgress();
+            }
+        }
+
+        // === YÊU THÍCH – DÙNG TOKEN TỪ BODY ===
+        document.getElementById('favorite-btn')?.addEventListener('click', function () {
+            const btn = this;
+            const slug = btn.dataset.slug;
+            const name = btn.dataset.name;
+            const poster = btn.dataset.poster;  // ← posterUrl
+
+            console.log('Gửi yêu cầu:', { slug, name, posterUrl: poster }); // LOG NGAY ĐẦU
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (!token) {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                Toastify({ text: "Lỗi: Thiếu token!", backgroundColor: "red" }).showToast();
+                return;
+            }
+
+            fetch('/Watch/ToggleFavorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ 
+                    slug, 
+                    name, 
+                    posterUrl: poster  // ← PHẢI LÀ posterUrl
+                })
+            })
+            .then(r => {
+                console.log('Status:', r.status);
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            })
+            .then(data => {
+                console.log('Kết quả:', data);
+                if (data.success) {
+                    const icon = data.isFavorite ? 'fas fa-heart' : 'far fa-heart';
+                    const text = data.isFavorite ? 'Đã yêu thích' : 'Yêu thích';
+                    btn.innerHTML = `<i class="${icon}"></i> <span class="ms-1">${text}</span>`;
+                    btn.className = data.isFavorite 
+                        ? 'btn btn-danger btn-sm me-2' 
+                        : 'btn btn-outline-light btn-sm me-2';
+
+                    Toastify({
+                        text: data.message,
+                        backgroundColor: data.isFavorite ? "#28a745" : "#dc3545"
+                    }).showToast();
+                } else {
+                    btn.innerHTML = originalHTML;
+                    Toastify({ text: data.message || "Lỗi! Thử lại.", backgroundColor: "red" }).showToast();
+                }
+            })
+            .catch(err => {
+                console.error('Lỗi fetch:', err);
+                btn.innerHTML = originalHTML;
+                Toastify({ text: "Lỗi kết nối!", backgroundColor: "red" }).showToast();
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
+
+        // === LƯU TIẾN TRÌNH ===
+        function loadWatchProgress() {
+            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
+            fetch(`/Watch/GetWatchProgress?movieSlug=${movieSlug}&episodeSlug=${currentEpisodeSlug}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.currentTime > 0) {
+                        console.log(`Tiến trình: ${data.currentTime}s`);
+                    }
+                });
+        }
+
+        function saveWatchProgress(currentTime, totalTime) {
+            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
+            const data = {
+                movieSlug, movieTitle, posterUrl, currentEpisodeName, currentEpisodeSlug,
+                currentTime: Math.floor(currentTime),
+                totalTime: Math.floor(totalTime)
+            };
+            fetch('/Watch/SaveWatchProgress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+        }
+
+        if (isAuthenticated) {
+            loadWatchProgress();
+            let watchTime = 0;
+            @if (ViewBag.WatchHistory != null)
+            {
+                <text>watchTime = @ViewBag.WatchHistory.CurrentTime;</text>
+            }
+            saveProgressInterval = setInterval(() => {
+                watchTime += 30;
+                saveWatchProgress(watchTime, watchTime + 600);
+            }, 30000);
+        }
+
+        window.addEventListener('beforeunload', () => clearInterval(saveProgressInterval));
+    </script>
+}

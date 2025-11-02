@@ -1,0 +1,266 @@
+@model WebMovie.Models.MovieDetailResponse
+@using WebMovie.Services
+@inject FavoriteService FavoriteService
+
+@{
+    ViewData["Title"] = Model?.Movie?.Name ?? "Chi tiết phim";
+
+    var movie = Model?.Movie;
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isFavorite = false;
+
+    if (movie != null && userId != null)
+    {
+        isFavorite = await FavoriteService.IsFavoriteAsync(userId, movie.Slug);
+    }
+}
+
+<main id="main-contents" class="col-xs-12 col-sm-12 col-md-12">
+    @if (movie != null)
+    {
+        <section class="movie-detail-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <!-- Movie Poster -->
+                    <div class="col-md-3">
+                        <div class="movie-poster">
+                            <img src="@movie.PosterUrl" alt="@movie.Name" class="img-fluid rounded shadow">
+
+                            <!-- Action Buttons -->
+                            <div class="action-buttons mt-3 d-grid gap-2">
+                                <a href="/Watch?slug=@movie.Slug" class="btn btn-danger btn-lg">
+                                    Xem Phim Ngay
+                                </a>
+
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    <button id="favorite-btn"
+                                            class="btn @(isFavorite ? "btn-danger" : "btn-outline-light") w-100"
+                                            data-slug="@movie.Slug"
+                                            data-name="@movie.Name"
+                                            data-poster="@movie.PosterUrl">
+                                        <i class="fas @(isFavorite ? "fa" : "far") fa-heart"></i>
+                                        @(isFavorite ? " Đã yêu thích" : " Yêu thích")
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a href="/Account/Login?returnUrl=@Context.Request.Path" class="btn btn-outline-secondary w-100">
+                                        Đăng nhập để lưu yêu thích
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Movie Info -->
+                    <div class="col-md-9">
+                        <div class="movie-info">
+                            <h1 class="movie-title">@movie.Name</h1>
+                            <p class="original-title text-muted">@movie.OriginName</p>
+
+                            <div class="movie-meta mb-3">
+                                @if (!string.IsNullOrEmpty(movie.Quality))
+                                {
+                                    <span class="badge bg-warning text-dark me-2">@movie.Quality</span>
+                                }
+                                @if (!string.IsNullOrEmpty(movie.Lang))
+                                {
+                                    <span class="badge bg-info text-dark me-2">@movie.Lang</span>
+                                }
+                                @if (!string.IsNullOrEmpty(movie.EpisodeCurrent))
+                                {
+                                    <span class="badge bg-success me-2">@movie.EpisodeCurrent</span>
+                                }
+                                @if (movie.Year > 0)
+                                {
+                                    <span class="badge bg-secondary me-2">@movie.Year</span>
+                                }
+                                @if (!string.IsNullOrEmpty(movie.Time))
+                                {
+                                    <span class="badge bg-dark me-2"><i class="far fa-clock"></i> @movie.Time</span>
+                                }
+                            </div>
+
+                            <div class="movie-description mt-4">
+                                <h3><i class="fas fa-align-left"></i> Nội dung phim</h3>
+                                <div class="content">
+                                    @Html.Raw(movie.Content)
+                                </div>
+                            </div>
+
+                            <div class="movie-details mt-4">
+                                <div class="row">
+                                    @if (movie.Category != null && movie.Category.Any())
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <strong><i class="fas fa-tags"></i> Thể loại:</strong>
+                                            <div class="mt-2">
+                                                @foreach (var cat in movie.Category)
+                                                {
+                                                    <a href="/Movie/Category/@cat.Slug" class="badge bg-primary me-1">@cat.Name</a>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (movie.Country != null && movie.Country.Any())
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <strong><i class="fas fa-flag"></i> Quốc gia:</strong>
+                                            <div class="mt-2">
+                                                @foreach (var country in movie.Country)
+                                                {
+                                                    <a href="/Movie/Country/@country.Slug" class="badge bg-secondary me-1">@country.Name</a>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+
+                                    @if (movie.Actor != null && movie.Actor.Any())
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <strong><i class="fas fa-users"></i> Diễn viên:</strong>
+                                            <p class="mt-2">@string.Join(", ", movie.Actor)</p>
+                                        </div>
+                                    }
+
+                                    @if (movie.Director != null && movie.Director.Any())
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <strong><i class="fas fa-video"></i> Đạo diễn:</strong>
+                                            <p class="mt-2">@string.Join(", ", movie.Director)</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(movie.TrailerUrl))
+                            {
+                                <div class="trailer-section mt-4">
+                                    <h3><i class="fas fa-film"></i> Trailer</h3>
+                                    <div class="ratio ratio-16x9">
+                                        <iframe src="@movie.TrailerUrl" allowfullscreen></iframe>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            <p>Không tìm thấy thông tin phim</p>
+        </div>
+    }
+</main>
+
+<style>
+    .movie-detail-section {
+        background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+        color: #fff;
+        padding: 30px 0;
+        min-height: 100vh;
+    }
+
+    .movie-poster img {
+        border: 3px solid #e94560;
+    }
+
+    .movie-title {
+        color: #e94560;
+        font-size: 2.5rem;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .original-title {
+        font-size: 1.2rem;
+        font-style: italic;
+    }
+
+    .movie-meta .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .movie-description h3,
+    .movie-details strong,
+    .trailer-section h3 {
+        color: #e94560;
+        margin-bottom: 15px;
+    }
+
+    .content {
+        line-height: 1.8;
+        font-size: 1.1rem;
+    }
+
+    .action-buttons .btn {
+        font-size: 1.1rem;
+        padding: 12px;
+        font-weight: bold;
+    }
+
+    .movie-details a.badge:hover {
+        opacity: 0.8;
+        text-decoration: none;
+    }
+</style>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <script>
+        document.getElementById('favorite-btn')?.addEventListener('click', function () {
+            const btn = this;
+            const slug = btn.dataset.slug;
+            const name = btn.dataset.name;
+            const poster = btn.dataset.poster;
+            const isFavorite = btn.classList.contains('btn-danger');
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+
+            fetch('/Movie/ToggleFavorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ slug, name, posterUrl: poster })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = data.isFavorite ? 'fas fa-heart' : 'far fa-heart';
+                    const text = data.isFavorite ? ' Đã yêu thích' : ' Yêu thích';
+                    btn.innerHTML = `<i class="${icon}"></i>${text}`;
+                    btn.className = data.isFavorite ? 'btn btn-danger w-100' : 'btn btn-outline-light w-100';
+
+                    Toastify({
+                        text: data.message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: data.isFavorite ? "#28a745" : "#dc3545"
+                    }).showToast();
+                } else {
+                    btn.innerHTML = originalHTML;
+                    Toastify({ text: "Lỗi! Thử lại.", backgroundColor: "red" }).showToast();
+                }
+            })
+            .catch(() => {
+                btn.innerHTML = originalHTML;
+                Toastify({ text: "Lỗi kết nối!", backgroundColor: "red" }).showToast();
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
+    </script>
+}
