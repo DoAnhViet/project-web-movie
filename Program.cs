@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WebMovie.Models;
 using WebMovie.Data;
 using WebMovie.Services;
+using WebMovie.Hubs;
 using DotNetEnv;
 
 // Load .env file

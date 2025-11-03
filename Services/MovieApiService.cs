@@ -6,12 +6,15 @@ namespace WebMovie.Services
     public class MovieApiService
     {
         private readonly HttpClient _httpClient;
+        private readonly ApplicationDbContext? _db;
         private const string BaseUrl = "https://phimapi.com";
 
-        public MovieApiService(HttpClient httpClient)
+        // ApplicationDbContext is optional so the service still works when DB isn't configured
+        public MovieApiService(HttpClient httpClient, ApplicationDbContext? db = null)
         {
             _httpClient = httpClient;
             _httpClient.BaseAddress = new Uri(BaseUrl);
+            _db = db;
         }
 
         // Lấy danh sách phim mới cập nhật
@@ -28,6 +31,8 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                // Apply any custom titles from DB
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -51,6 +56,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -74,6 +80,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -104,6 +111,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -158,6 +166,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -183,6 +192,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -292,5 +302,56 @@ namespace WebMovie.Services
                 return default;
             }
         }
+
+        #region Custom title helpers
+        private void ApplyCustomTitles(MovieListResponse? list)
+        {
+            if (list == null || list.Items == null || _db == null) return;
+
+            var slugs = list.Items.Select(i => i.Slug).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
+            if (!slugs.Any()) return;
+
+            var overrides = _db.CustomMovieTitles
+                .Where(c => slugs.Contains(c.MovieSlug))
+                .ToDictionary(c => c.MovieSlug, c => c);
+
+            foreach (var item in list.Items)
+            {
+                if (overrides.TryGetValue(item.Slug, out var custom))
+                {
+                    // store original in object if empty
+                    if (string.IsNullOrEmpty(custom.OriginalTitle))
+                    {
+                        custom.OriginalTitle = item.Name ?? "";
+                        // don't auto-save here to avoid side-effects during read
+                    }
+                    item.Name = custom.CustomTitle ?? item.Name;
+                }
+            }
+        }
+
+        private void ApplyCustomTitles(MovieDetailResponse? detail)
+        {
+            if (detail == null || detail.Movie == null || _db == null) return;
+
+            var slug = detail.Movie.Slug;
+            if (string.IsNullOrEmpty(slug)) return;
+
+            var custom = _db.CustomMovieTitles.FirstOrDefault(c => c.MovieSlug == slug);
+            if (custom != null)
+            {
+                if (string.IsNullOrEmpty(custom.OriginalTitle))
+                {
+                    custom.OriginalTitle = detail.Movie.Name ?? "";
+                    // skip saving here
+                }
+                detail.Movie.Name = custom.CustomTitle ?? detail.Movie.Name;
+                if (!string.IsNullOrEmpty(custom.CustomDescription))
+                {
+                    detail.Movie.Content = custom.CustomDescription;
+                }
+            }
+        }
+        #endregion
     }
 }
