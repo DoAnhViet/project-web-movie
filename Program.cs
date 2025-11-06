@@ -57,6 +57,34 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
 builder.Services.AddControllersWithViews();
 
+
+
+// ======================= GOOGLE AUTH =======================
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+    })
+    .AddGoogle(options =>
+    {
+        // Lấy từ appsettings.json 
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]
+                           ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID");
+
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]
+                               ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
+
+        options.CallbackPath = "/signin-google"; // Google mặc định gọi lại đường dẫn này
+    });
+
+
+
 // Đăng ký HttpClient cho MovieApiService
 builder.Services.AddHttpClient<MovieApiService>();
 
@@ -97,3 +125,4 @@ if (!useInMemory)
 }
 
 app.Run();
+
