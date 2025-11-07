@@ -8,7 +8,7 @@ using System.Security.Claims;
 namespace WebMovie.Controllers
 {
     public class AccountController : Controller
-    {
+    {//
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
