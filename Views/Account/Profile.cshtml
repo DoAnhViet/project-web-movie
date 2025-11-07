@@ -1,0 +1,21 @@
+@model WebMovie.Models.ApplicationUser
+@{
+    ViewData["Title"] = "Trang cá nhân";
+}
+
+<link rel="stylesheet" href="~/css/profile.css" />
+
+<div class="profile-wrapper">
+    <div class="profile-card">
+        <img class="profile-avatar" 
+             src="https://www.w3schools.com/howto/img_avatar.png" 
+             alt="Avatar">
+
+        <h2 class="profile-name">@Model.FullName</h2>
+        <p class="profile-email">@Model.Email</p>
+
+        <form asp-action="Logout" method="post">
+            <button type="submit" class="btn-logout">Đăng xuất</button>
+        </form>
+    </div>
+</div>
