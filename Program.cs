@@ -64,7 +64,7 @@ builder.Services
     .AddAuthentication(options =>
     {
         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+      //  options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
     })
     .AddCookie(options =>
     {
@@ -125,4 +125,5 @@ if (!useInMemory)
 }
 
 app.Run();
+
 
