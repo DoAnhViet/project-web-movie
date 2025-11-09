@@ -1,13 +1,23 @@
 @model WebMovie.Models.MovieDetailResponse
+@using WebMovie.Services
+@inject FavoriteService FavoriteService
+
 @{
     ViewData["Title"] = Model?.Movie?.Name ?? "Chi tiết phim";
+
+    var movie = Model?.Movie;
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isFavorite = false;
+
+    if (movie != null && userId != null)
+    {
+        isFavorite = await FavoriteService.IsFavoriteAsync(userId, movie.Slug);
+    }
 }
 
 <main id="main-contents" class="col-xs-12 col-sm-12 col-md-12">
-    @if (Model != null && Model.Movie != null)
+    @if (movie != null)
     {
-        var movie = Model.Movie;
-        
         <section class="movie-detail-section">
             <div class="container-fluid">
                 <div class="row">
@@ -15,35 +25,42 @@
                     <div class="col-md-3">
                         <div class="movie-poster">
                             <img src="@movie.PosterUrl" alt="@movie.Name" class="img-fluid rounded shadow">
-                            
+
                             <!-- Action Buttons -->
                             <div class="action-buttons mt-3 d-grid gap-2">
                                 <a href="/Watch?slug=@movie.Slug" class="btn btn-danger btn-lg">
-                                    <i class="fas fa-play"></i> Xem Phim Ngay
+                                    Xem Phim Ngay
                                 </a>
-                                
+
                                 @if (User.Identity?.IsAuthenticated == true)
                                 {
-                                    <button class="btn btn-outline-light" onclick="addToFavorite('@movie.Slug')">
-                                        <i class="far fa-heart"></i> Yêu thích
+                                    <button id="favorite-btn"
+                                            class="btn @(isFavorite ? "btn-danger" : "btn-outline-light") w-100"
+                                            data-slug="@movie.Slug"
+                                            data-name="@movie.Name"
+                                            data-poster="@movie.PosterUrl">
+                                        <i class="fas @(isFavorite ? "fa" : "far") fa-heart"></i>
+                                        @(isFavorite ? " Đã yêu thích" : " Yêu thích")
                                     </button>
                                 }
                                 else
                                 {
-                                    <a href="/Account/Login" class="btn btn-outline-secondary">
-                                        <i class="fas fa-user"></i> Đăng nhập để lưu yêu thích
+                                    <a href="/Account/Login?returnUrl=@Context.Request.Path" class="btn btn-outline-secondary w-100">
+                                        Đăng nhập để lưu yêu thích
                                     </a>
                                 }
                             </div>
                         </div>
                     </div>
                     
+
                     <!-- Movie Info -->
                     <div class="col-md-9">
                         <div class="movie-info">
                             <h1 class="movie-title">@movie.Name</h1>
                             <p class="original-title text-muted">@movie.OriginName</p>
                             
+
                             <div class="movie-meta mb-3">
                                 @if (!string.IsNullOrEmpty(movie.Quality))
                                 {
@@ -67,6 +84,7 @@
                                 }
                             </div>
                             
+
                             <div class="movie-description mt-4">
                                 <h3><i class="fas fa-align-left"></i> Nội dung phim</h3>
                                 <div class="content">
@@ -74,6 +92,7 @@
                                 </div>
                             </div>
                             
+
                             <div class="movie-details mt-4">
                                 <div class="row">
                                     @if (movie.Category != null && movie.Category.Any())
@@ -89,6 +108,7 @@
                                         </div>
                                     }
                                     
+
                                     @if (movie.Country != null && movie.Country.Any())
                                     {
                                         <div class="col-md-6 mb-3">
@@ -102,6 +122,7 @@
                                         </div>
                                     }
                                     
+
                                     @if (movie.Actor != null && movie.Actor.Any())
                                     {
                                         <div class="col-md-6 mb-3">
@@ -110,6 +131,7 @@
                                         </div>
                                     }
                                     
+
                                     @if (movie.Director != null && movie.Director.Any())
                                     {
                                         <div class="col-md-6 mb-3">
@@ -120,6 +142,7 @@
                                 </div>
                             </div>
                             
+
                             @if (!string.IsNullOrEmpty(movie.TrailerUrl))
                             {
                                 <div class="trailer-section mt-4">
@@ -150,11 +173,11 @@
         padding: 30px 0;
         min-height: 100vh;
     }
-    
+
     .movie-poster img {
         border: 3px solid #e94560;
     }
-    
+
     .movie-title {
         color: #e94560;
         font-size: 2.5rem;
@@ -162,16 +185,19 @@
         text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
+
     .original-title {
         font-size: 1.2rem;
         font-style: italic;
     }
     
+
     .movie-meta .badge {
         font-size: 0.9rem;
         padding: 0.5rem 1rem;
     }
     
+
     .movie-description h3,
     .movie-details strong,
     .trailer-section h3 {
@@ -179,17 +205,20 @@
         margin-bottom: 15px;
     }
     
+
     .content {
         line-height: 1.8;
         font-size: 1.1rem;
     }
     
+
     .action-buttons .btn {
         font-size: 1.1rem;
         padding: 12px;
         font-weight: bold;
     }
     
+
     .movie-details a.badge:hover {
         opacity: 0.8;
         text-decoration: none;
@@ -197,10 +226,55 @@
 </style>
 
 @section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
     <script>
-        function addToFavorite(slug) {
-            // TODO: Implement add to favorite
-            alert('Tính năng đang phát triển!');
-        }
+        document.getElementById('favorite-btn')?.addEventListener('click', function () {
+            const btn = this;
+            const slug = btn.dataset.slug;
+            const name = btn.dataset.name;
+            const poster = btn.dataset.poster;
+            const isFavorite = btn.classList.contains('btn-danger');
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+
+            fetch('/Movie/ToggleFavorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ slug, name, posterUrl: poster })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = data.isFavorite ? 'fas fa-heart' : 'far fa-heart';
+                    const text = data.isFavorite ? ' Đã yêu thích' : ' Yêu thích';
+                    btn.innerHTML = `<i class="${icon}"></i>${text}`;
+                    btn.className = data.isFavorite ? 'btn btn-danger w-100' : 'btn btn-outline-light w-100';
+
+                    Toastify({
+                        text: data.message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: data.isFavorite ? "#28a745" : "#dc3545"
+                    }).showToast();
+                } else {
+                    btn.innerHTML = originalHTML;
+                    Toastify({ text: "Lỗi! Thử lại.", backgroundColor: "red" }).showToast();
+                }
+            })
+            .catch(() => {
+                btn.innerHTML = originalHTML;
+                Toastify({ text: "Lỗi kết nối!", backgroundColor: "red" }).showToast();
+            })
+            .finally(() => {
+                btn.disabled = false;
+            });
+        });
     </script>
 }

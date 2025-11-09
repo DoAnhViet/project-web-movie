@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using WebMovie.Models;
 using WebMovie.Data;
 using WebMovie.Services;
-using WebMovie.Hubs;
 using DotNetEnv;
 
 // Load .env file
@@ -39,6 +39,9 @@ else
             )
         ));
 }
+
+// Đăng ký FavoriteService
+builder.Services.AddScoped<FavoriteService>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {

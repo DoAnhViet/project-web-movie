@@ -6,15 +6,12 @@ namespace WebMovie.Services
     public class MovieApiService
     {
         private readonly HttpClient _httpClient;
-        private readonly ApplicationDbContext? _db;
         private const string BaseUrl = "https://phimapi.com";
 
-        // ApplicationDbContext is optional so the service still works when DB isn't configured
-        public MovieApiService(HttpClient httpClient, ApplicationDbContext? db = null)
+        public MovieApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
             _httpClient.BaseAddress = new Uri(BaseUrl);
-            _db = db;
         }
 
         // Lấy danh sách phim mới cập nhật
@@ -31,8 +28,6 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
-                // Apply any custom titles from DB
-                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -56,7 +51,6 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
-                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -67,25 +61,47 @@ namespace WebMovie.Services
         }
 
         // Tìm kiếm phim
+        // Trong SearchMoviesAsync - GIỮ /v1/api/tim-kiem (ĐÚNG!)
         public async Task<MovieListResponse?> SearchMoviesAsync(string keyword, int page = 1)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"/v1/api/tim-kiem?keyword={keyword}&page={page}");
+                var encodedKeyword = Uri.EscapeDataString(keyword.Trim());
+                var response = await _httpClient.GetAsync($"/v1/api/tim-kiem?keyword={encodedKeyword}&page={page}");
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+                var searchResult = JsonSerializer.Deserialize<SearchResponse>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-                
-                ApplyCustomTitles(result);
-                return result;
+
+                if (searchResult == null || searchResult.Status?.ToLower() != "success")
+                    return null;
+
+                var items = searchResult.Data?.Items ?? searchResult.Items ?? new List<MovieItem>();
+
+                // SỬA: THÊM PREFIX CHO ẢNH TÌM KIẾM
+                const string cdn = "https://phimimg.com";
+                foreach (var item in items)
+                {
+                    if (!string.IsNullOrEmpty(item.PosterUrl) && !item.PosterUrl.StartsWith("http"))
+                        item.PosterUrl = cdn + "/" + item.PosterUrl.TrimStart('/');
+                    if (!string.IsNullOrEmpty(item.ThumbUrl) && !item.ThumbUrl.StartsWith("http"))
+                        item.ThumbUrl = cdn + "/" + item.ThumbUrl.TrimStart('/');
+                }
+
+                return new MovieListResponse
+                {
+                    Status = true,
+                    Message = searchResult.Message,
+                    Items = items,
+                    Pagination = searchResult.Data?.Pagination ?? searchResult.Pagination
+                };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error searching movies: {ex.Message}");
+                Console.WriteLine($"Error searching: {ex.Message}");
                 return null;
             }
         }
@@ -95,78 +111,59 @@ namespace WebMovie.Services
         {
             try
             {
-                var url = $"/v1/api/the-loai/{categorySlug}?page={page}";
-                Console.WriteLine($"[DEBUG] Fetching category movies: {BaseUrl}{url}");
-
-                var response = await _httpClient.GetAsync(url);
-                Console.WriteLine($"[DEBUG] Status: {response.StatusCode}");
-
-                var content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG] Content: {content}");
-
+                var response = await _httpClient.GetAsync($"/v1/api/the-loai/{categorySlug}?page={page}");
                 response.EnsureSuccessStatusCode();
-
+                
+                var content = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-
-                ApplyCustomTitles(result);
+                
                 return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error fetching category movies: {ex.Message}");
+                Console.WriteLine($"Error fetching category movies: {ex.Message}");
                 return null;
             }
         }
 
-
-
-        
-        // Lấy chi tiết thể loại phim (có lọc, sắp xếp, phân trang)
-        // Lấy chi tiết thể loại phim (có lọc, sắp xếp, phân trang)
+        // Lấy phim theo thể loại với filter chi tiết
         public async Task<MovieListResponse?> GetCategoryDetailAsync(
-            string categorySlug,
+            string categorySlug, 
             int page = 1,
-            string sortField = "_id",
-            string sortType = "asc",
-            string sortLang = "",
+            string sort_field = "_id",
+            string sort_type = "asc",
+            string sort_lang = "",
             string country = "",
             string year = "",
             int limit = 20)
         {
             try
             {
-                var queryParams = new List<string> { $"page={page}" };
+                var queryParams = new List<string>
+                {
+                    $"page={page}",
+                    $"sort_field={sort_field}",
+                    $"sort_type={sort_type}",
+                    $"limit={limit}"
+                };
 
-                if (!string.IsNullOrWhiteSpace(sortField))
-                    queryParams.Add($"sort_field={sortField}");
-                if (!string.IsNullOrWhiteSpace(sortType))
-                    queryParams.Add($"sort_type={sortType}");
-                if (!string.IsNullOrWhiteSpace(sortLang))
-                    queryParams.Add($"sort_lang={sortLang}");
-                if (!string.IsNullOrWhiteSpace(country))
-                    queryParams.Add($"country={country}");
-                if (!string.IsNullOrWhiteSpace(year))
-                    queryParams.Add($"year={year}");
-                if (limit > 0)
-                    queryParams.Add($"limit={limit}");
+                if (!string.IsNullOrEmpty(sort_lang)) queryParams.Add($"sort_lang={sort_lang}");
+                if (!string.IsNullOrEmpty(country)) queryParams.Add($"country={country}");
+                if (!string.IsNullOrEmpty(year)) queryParams.Add($"year={year}");
 
-                var url = $"/v1/api/the-loai/{categorySlug}?{string.Join("&", queryParams)}";
-
-                Console.WriteLine($"[DEBUG] Fetching category detail: {url}");
-
-                var response = await _httpClient.GetAsync(url);
+                var query = string.Join("&", queryParams);
+                var response = await _httpClient.GetAsync($"/v1/api/the-loai/{categorySlug}?{query}");
                 response.EnsureSuccessStatusCode();
-
+                
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-
-                ApplyCustomTitles(result);
+                
                 return result;
             }
             catch (Exception ex)
@@ -176,100 +173,9 @@ namespace WebMovie.Services
             }
         }
 
-
-
-        // Lấy phim theo quốc gia
-        public async Task<MovieListResponse?> GetMoviesByCountryAsync(string countrySlug, int page = 1)
-        {
-            try
-            {
-                var response = await _httpClient.GetAsync($"/v1/api/quoc-gia/{countrySlug}?page={page}");
-                response.EnsureSuccessStatusCode();
-
-                var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                ApplyCustomTitles(result);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching country movies: {ex.Message}");
-                return null;
-            }
-        }
-
-        public async Task<List<Category>?> GetCountriesAsync()
-        {
-            try
-            {
-                Console.WriteLine("Calling GET /quoc-gia");
-                var response = await _httpClient.GetAsync("/quoc-gia");
-                response.EnsureSuccessStatusCode();
-
-                var content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Response: {content}");
-
-                var countries = JsonSerializer.Deserialize<List<GenreResponse>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                var result = countries?.Select(c => new Category
-                {
-                    Name = c.Name,
-                    Slug = c.Slug,
-                    Id = c.Slug
-                }).ToList() ?? new List<Category>();
-
-                Console.WriteLine($"Parsed {result.Count} countries");
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching countries: {ex.Message}");
-                return new List<Category>();
-            }
-        }
-
-
-        public async Task<List<Category>?> GetGenresAsync()
-        {
-            try
-            {
-                Console.WriteLine("Calling GET /the-loai");
-                var response = await _httpClient.GetAsync("/the-loai");
-                response.EnsureSuccessStatusCode();
-
-                var content = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"API Response: {content}");
-
-                var genres = JsonSerializer.Deserialize<List<GenreResponse>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                var categories = genres?.Select(g => new Category
-                {
-                    Name = g.Name,
-                    Slug = g.Slug,
-                    Id = g.Slug // Use slug as ID since API doesn't return one
-                }).ToList() ?? new List<Category>();
-
-                Console.WriteLine($"Parsed {categories.Count} categories");
-                return categories;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching genres: {ex.Message}");
-                return new List<Category>();
-            }
-        }
+        // Lấy phim theo năm với filter chi tiết
         public async Task<MovieListResponse?> GetMoviesByYearAsync(
-            int year,
+            string year, 
             int page = 1,
             string sort_field = "_id",
             string sort_type = "asc",
@@ -278,80 +184,60 @@ namespace WebMovie.Services
             string country = "",
             int limit = 20)
         {
-            var url = $"/v1/api/nam/{year}?page={page}&sort_field={sort_field}&sort_type={sort_type}&sort_lang={sort_lang}&category={category}&country={country}&limit={limit}";
-            return await GetFromApiAsync<MovieListResponse>(url);
-        }
-
-        private async Task<T?> GetFromApiAsync<T>(string url)
-        {
             try
             {
-                var response = await _httpClient.GetAsync(url);
+                var queryParams = new List<string>
+                {
+                    $"page={page}",
+                    $"sort_field={sort_field}",
+                    $"sort_type={sort_type}",
+                    $"limit={limit}"
+                };
+
+                if (!string.IsNullOrEmpty(sort_lang)) queryParams.Add($"sort_lang={sort_lang}");
+                if (!string.IsNullOrEmpty(category)) queryParams.Add($"category={category}");
+                if (!string.IsNullOrEmpty(country)) queryParams.Add($"country={country}");
+
+                var query = string.Join("&", queryParams);
+                var response = await _httpClient.GetAsync($"/v1/api/nam/{year}?{query}");
                 response.EnsureSuccessStatusCode();
-
-                var json = await response.Content.ReadAsStringAsync();
-
-                return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
+                
+                return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[API ERROR] {url} -> {ex.Message}");
-                return default;
+                Console.WriteLine($"Error fetching movies by year: {ex.Message}");
+                return null;
             }
         }
 
-        #region Custom title helpers
-        private void ApplyCustomTitles(MovieListResponse? list)
+        // Lấy phim theo quốc gia
+        public async Task<MovieListResponse?> GetMoviesByCountryAsync(string countrySlug, int page = 1)
         {
-            if (list == null || list.Items == null || _db == null) return;
-
-            var slugs = list.Items.Select(i => i.Slug).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
-            if (!slugs.Any()) return;
-
-            var overrides = _db.CustomMovieTitles
-                .Where(c => slugs.Contains(c.MovieSlug))
-                .ToDictionary(c => c.MovieSlug, c => c);
-
-            foreach (var item in list.Items)
+            try
             {
-                if (overrides.TryGetValue(item.Slug, out var custom))
+                var response = await _httpClient.GetAsync($"/v1/api/quoc-gia/{countrySlug}?page={page}");
+                response.EnsureSuccessStatusCode();
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
                 {
-                    // store original in object if empty
-                    if (string.IsNullOrEmpty(custom.OriginalTitle))
-                    {
-                        custom.OriginalTitle = item.Name ?? "";
-                        // don't auto-save here to avoid side-effects during read
-                    }
-                    item.Name = custom.CustomTitle ?? item.Name;
-                }
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching country movies: {ex.Message}");
+                return null;
             }
         }
-
-        private void ApplyCustomTitles(MovieDetailResponse? detail)
-        {
-            if (detail == null || detail.Movie == null || _db == null) return;
-
-            var slug = detail.Movie.Slug;
-            if (string.IsNullOrEmpty(slug)) return;
-
-            var custom = _db.CustomMovieTitles.FirstOrDefault(c => c.MovieSlug == slug);
-            if (custom != null)
-            {
-                if (string.IsNullOrEmpty(custom.OriginalTitle))
-                {
-                    custom.OriginalTitle = detail.Movie.Name ?? "";
-                    // skip saving here
-                }
-                detail.Movie.Name = custom.CustomTitle ?? detail.Movie.Name;
-                if (!string.IsNullOrEmpty(custom.CustomDescription))
-                {
-                    detail.Movie.Content = custom.CustomDescription;
-                }
-            }
-        }
-        #endregion
     }
 }

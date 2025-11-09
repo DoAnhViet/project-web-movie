@@ -15,12 +15,13 @@ namespace WebMovie.Controllers
 
         public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            // TODO: Implement GetGenresAsync and GetCountriesAsync in MovieApiService if needed
             // Load thể loại và quốc gia cho mọi view
-            var categories = await _movieApiService.GetGenresAsync();
-            var countries = await _movieApiService.GetCountriesAsync();
+            // var categories = await _movieApiService.GetGenresAsync();
+            // var countries = await _movieApiService.GetCountriesAsync();
 
-            ViewBag.Categories = categories;
-            ViewBag.Countries = countries;
+            // ViewBag.Categories = categories;
+            // ViewBag.Countries = countries;
 
             await next();
         }

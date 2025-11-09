@@ -4,6 +4,14 @@
 }
 
 <div class="container mt-4">
+@if (!string.IsNullOrEmpty(ViewBag.Keyword))
+    {
+        
+        <div class="alert alert-info text-center">
+            <strong>Kết quả tìm kiếm cho:</strong> "@ViewBag.Keyword"
+            <small class="ms-2">(@Model?.Pagination?.TotalItems phim)</small>
+        </div>
+    }
     <h2 class="mb-4">@ViewData["Title"]</h2>
     
     <div class="row">
@@ -76,6 +84,6 @@
                 </ul>
             </div>
         }
-    </section>
+    
     </div>
 </main>

@@ -6,12 +6,7 @@ namespace WebMovie.Models
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
-
-        // Phim yêu thích của user
-        public DbSet<FavoriteMovie> FavoriteMovies { get; set; } = null!;
+            : base(options){}
 
         // Tiêu đề phim tùy chỉnh (Việt hóa)
         public DbSet<CustomMovieTitle> CustomMovieTitles { get; set; } = null!;
@@ -24,6 +19,10 @@ namespace WebMovie.Models
 
         // Báo cáo từ user
         public DbSet<Report> Reports { get; set; } = null!;
+
+        // Phim yêu thích của user
+        public DbSet<FavoriteMovie> FavoriteMovies { get; set; } = null!;
+        
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

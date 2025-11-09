@@ -8,21 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <style>
-        .dropdown:hover .dropdown-menu {
-            display: block;
-        }
-        .dropdown-menu {
-            background-color: #2d2d2d;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .dropdown-menu .dropdown-item {
-            color: #fff;
-        }
-        .dropdown-menu .dropdown-item:hover {
-            background-color: #3d3d3d;
-            color: #ff6b35;
-        }
         body {
             background-color: #1a1a1a;
             color: #fff;
@@ -109,6 +94,7 @@
     </style>
 </head>
 <body>
+@Html.AntiForgeryToken()
     <header>
         <!-- Top header with logo, search, icons -->
         <div class="top-header">
@@ -116,14 +102,13 @@
                 <div class="row align-items-center">
                     <div class="col-md-2">
                         <a href="/" class="logo">
-                            <img src="~/images/logo.png" alt="Logo" />
+                            <img src="~/images/logo.svg" alt="Logo" />
+                            <span>HoạtHình3D</span>
                         </a>
                     </div>
                     <div class="col-md-7">
                         <div class="search-box">
-                            <form asp-controller="Movie" asp-action="Search" method="get">
-                                <input type="text" name="keyword" class="form-control" placeholder="Search..." />
-                            </form>
+                            @await Html.PartialAsync("_SearchBar")
                         </div>
                     </div>
                     <div class="col-md-3 text-end nav-icons">
@@ -169,50 +154,8 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/Movie/NewMovies"><i class="fas fa-film"></i> Phim Mới Cập Nhật</a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-film"></i> Thể loại
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
-                            @if (ViewBag.Categories != null)
-                            {
-                                <li class="dropdown-item">@(((List<WebMovie.Models.Category>)ViewBag.Categories)?.Count ?? 0) categories loaded</li>
-                                @foreach (var category in (List<WebMovie.Models.Category>)ViewBag.Categories)
-                                {
-                                    <li>
-                                        <a class="dropdown-item" href="/Movie/Category?slug=@category.Slug">
-                                            @category.Name
-                                        </a>
-                                    </li>
-                                }
-                            }
-                            else 
-                            {
-                                <li class="dropdown-item">No categories loaded</li>
-                            }
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="countryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-globe"></i> Quốc gia
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="countryDropdown">
-                            @if (ViewBag.Countries != null)
-                            {
-                                @foreach (var country in (List<WebMovie.Models.Category>)ViewBag.Countries)
-                                {
-                                    <li>
-                                        <a class="dropdown-item" href="/Movie/Country?slug=@country.Slug">
-                                            @country.Name
-                                        </a>
-                                    </li>
-                                }
-                            }
-                            else
-                            {
-                                <li class="dropdown-item">Không có dữ liệu quốc gia</li>
-                            }
-                        </ul>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Favorite"><i class="fas fa-heart"></i> Yêu thích</a>
                     </li>
                 </ul>
             </div>

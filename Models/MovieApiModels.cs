@@ -54,7 +54,7 @@ namespace WebMovie.Models
         public string ThumbUrl { get; set; }
 
         [JsonPropertyName("year")]
-        public int Year { get; set; }
+        public int? Year { get; set; }
 
         [JsonPropertyName("quality")]
         public string Quality { get; set; }
@@ -65,24 +65,11 @@ namespace WebMovie.Models
         [JsonPropertyName("episode_current")]
         public string EpisodeCurrent { get; set; }
 
-    // Possible view-count fields returned by different APIs. Make them nullable so absence won't break deserialization.
-    [JsonPropertyName("views")]
-    public long? Views { get; set; }
+        [JsonPropertyName("category")]
+        public List<Category> Category { get; set; }
 
-    [JsonPropertyName("view")]
-    public long? View { get; set; }
-
-    [JsonPropertyName("view_count")]
-    public long? ViewCount { get; set; }
-
-    [JsonPropertyName("views_total")]
-    public long? ViewsTotal { get; set; }
-
-    [JsonPropertyName("category")]
-    public List<Category> Category { get; set; }
-
-    [JsonPropertyName("country")]
-    public List<Category> Country { get; set; }
+        [JsonPropertyName("country")]
+        public List<Category> Country { get; set; }
     }
 
     public class Category
@@ -203,14 +190,5 @@ namespace WebMovie.Models
 
         [JsonPropertyName("link_m3u8")]
         public string LinkM3u8 { get; set; }
-    }
-
-    public class GenreResponse 
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("slug")]
-        public string Slug { get; set; } = string.Empty;
     }
 }

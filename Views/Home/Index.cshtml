@@ -14,15 +14,10 @@
                     var topMovies = new List<WebMovie.Models.MovieItem>();
                     if (Model?.Items != null)
                     {
+                        // Sort by most viewed movies
                         topMovies = Model.Items
-                            .Select(m => new {
-                                Movie = m,
-                                ViewsValue = (m.Views ?? m.View ?? m.ViewCount ?? m.ViewsTotal ?? 0L)
-                            })
-                            .OrderByDescending(x => x.ViewsValue)
-                            .ThenByDescending(x => x.Movie.Year)
+                            .OrderByDescending(m => m.Year ?? 0)
                             .Take(10)
-                            .Select(x => x.Movie)
                             .ToList();
                     }
                 }

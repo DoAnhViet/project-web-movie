@@ -73,7 +73,7 @@
                     </div>
                     
                     <nav class="nav flex-column mt-3">
-                        <a class="nav-link @( (ViewContext.RouteData.Values["Action"]?.ToString() == "Index" || ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard") ? "active" : "")" 
+>>>>>>> origin/duyan-search-favourite
                            href="/Admin">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
@@ -149,7 +149,12 @@
                         </div>
                     </div>
                 </div>
-                
+=======
+                <div class="px-3 mb-4">
+                    <div class="col-md-6">
+                        @await Html.PartialAsync("_SearchBar")
+                    </div>
+>>>>>>> origin/duyan-search-favourite
                 <!-- Content -->
                 <div class="admin-content">
                     @if (TempData["SuccessMessage"] != null)
