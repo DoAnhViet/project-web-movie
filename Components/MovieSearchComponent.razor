@@ -1,0 +1,129 @@
+@* YÊU CẦU ĐỒ ÁN: Blazor Component *@
+@using WebMovie.Models
+@using WebMovie.Services
+@inject MovieApiService MovieApiService
+
+<div class="blazor-search-component">
+    <h4><i class="fas fa-search me-2"></i>Tìm kiếm nhanh (Blazor)</h4>
+    
+    <div class="input-group mb-3">
+        <input type="text" 
+               class="form-control" 
+               @bind="searchKeyword" 
+               @bind:event="oninput"
+               @onkeypress="HandleKeyPress"
+               placeholder="Nhập tên phim để tìm kiếm..." />
+        <button class="btn btn-primary" @onclick="SearchMovies">
+            <i class="fas fa-search"></i> Tìm
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Đang tìm...</span>
+            </div>
+        </div>
+    }
+    else if (searchResults != null && searchResults.Any())
+    {
+        <div class="search-results">
+            <p class="text-muted">Tìm thấy @searchResults.Count kết quả</p>
+            <div class="row">
+                @foreach (var movie in searchResults.Take(6))
+                {
+                    <div class="col-md-4 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <img src="@movie.ThumbUrl" class="card-img-top" alt="@movie.Name" style="height: 200px; object-fit: cover;" />
+                            <div class="card-body">
+                                <h6 class="card-title">@movie.Name</h6>
+                                <p class="card-text small text-muted">@movie.OriginName</p>
+                                <a href="/Movie/Detail?slug=@movie.Slug" class="btn btn-sm btn-primary">
+                                    Xem chi tiết
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            @if (searchResults.Count > 6)
+            {
+                <p class="text-center mt-3">
+                    <a href="/Movie/Search?keyword=@searchKeyword" class="btn btn-outline-primary">
+                        Xem tất cả @searchResults.Count kết quả
+                    </a>
+                </p>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(searchKeyword) && searchResults != null)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Không tìm thấy phim nào với từ khóa "<strong>@searchKeyword</strong>"
+        </div>
+    }
+</div>
+
+<style>
+    .blazor-search-component {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+
+    .search-results {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .card {
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+</style>
+
+@code {
+    private string searchKeyword = string.Empty;
+    private List<MovieItem>? searchResults;
+    private bool isLoading = false;
+
+    private async Task SearchMovies()
+    {
+        if (string.IsNullOrWhiteSpace(searchKeyword))
+            return;
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await MovieApiService.SearchMoviesAsync(searchKeyword, 1);
+            searchResults = response?.Items ?? new List<MovieItem>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error searching: {ex.Message}");
+            searchResults = new List<MovieItem>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchMovies();
+        }
+    }
+}

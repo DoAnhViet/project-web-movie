@@ -1,0 +1,223 @@
+@* YÊU CẦU ĐỒ ÁN: Blazor Component cho Favorite Movies *@
+@using WebMovie.Models
+@using WebMovie.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject FavoriteService FavoriteService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="favorite-blazor-component">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-heart text-danger"></i> 
+            Phim yêu thích của bạn
+            @if (favoriteMovies.Any())
+            {
+                <span class="badge bg-danger">@favoriteMovies.Count</span>
+            }
+        </h2>
+        <button class="btn btn-outline-primary" @onclick="RefreshList">
+            <i class="fas fa-sync-alt @(isLoading ? "fa-spin" : "")"></i> 
+            @(isLoading ? "Đang tải..." : "Làm mới")
+        </button>
+    </div>
+
+    @if (isLoading && !favoriteMovies.Any())
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Đang tải...</span>
+            </div>
+            <p class="mt-3 text-muted">Đang tải danh sách phim yêu thích...</p>
+        </div>
+    }
+    else if (favoriteMovies.Any())
+    {
+        <div class="row">
+            @foreach (var movie in favoriteMovies)
+            {
+                <div class="col-lg-2 col-md-3 col-sm-4 col-6 mb-4">
+                    <div class="movie-card-favorite">
+                        <div class="position-relative">
+                            <img src="@movie.PosterUrl" 
+                                 alt="@movie.Name" 
+                                 class="img-fluid rounded"
+                                 style="height: 280px; object-fit: cover; width: 100%;">
+                            
+                            <button class="btn btn-sm btn-danger remove-btn" 
+                                    @onclick="() => RemoveFromFavorites(movie.Slug)"
+                                    title="Xóa khỏi yêu thích">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="movie-info mt-2">
+                            <a href="/Movie/Detail?slug=@movie.Slug" class="text-decoration-none">
+                                <h6 class="movie-title text-truncate">@movie.Name</h6>
+                            </a>
+                            <a href="/Watch?slug=@movie.Slug" class="btn btn-sm btn-primary w-100 mt-2">
+                                <i class="fas fa-play"></i> Xem phim
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle"></i>
+            <strong>YÊU CẦU ĐỒ ÁN:</strong> Danh sách này được render bằng <strong>Blazor Component</strong> 
+            - cập nhật real-time khi xóa phim, không cần reload trang!
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning mt-4">
+            <i class="fas fa-heart-broken fa-3x mb-3 d-block"></i>
+            <h5>Bạn chưa có phim yêu thích nào</h5>
+            <p>Hãy khám phá và thêm những bộ phim yêu thích của bạn!</p>
+            <a href="/Movie/NewMovies" class="btn btn-primary">
+                <i class="fas fa-film"></i> Khám phá phim
+            </a>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = string.Empty"></button>
+        </div>
+    }
+</div>
+
+<style>
+    .favorite-blazor-component {
+        animation: fadeIn 0.5s;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .movie-card-favorite {
+        transition: transform 0.3s ease;
+    }
+
+    .movie-card-favorite:hover {
+        transform: translateY(-5px);
+    }
+
+    .remove-btn {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        padding: 5px 10px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .movie-card-favorite:hover .remove-btn {
+        opacity: 1;
+    }
+
+    .movie-title {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .movie-title:hover {
+        color: #dc3545;
+    }
+</style>
+
+@code {
+    private List<MovieItem> favoriteMovies = new();
+    private bool isLoading = false;
+    private string message = string.Empty;
+    private bool isError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFavorites();
+    }
+
+    private async Task LoadFavorites()
+    {
+        isLoading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    favoriteMovies = await FavoriteService.GetFavoriteMoviesAsync(userId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Lỗi khi tải danh sách: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshList()
+    {
+        message = string.Empty;
+        await LoadFavorites();
+    }
+
+    private async Task RemoveFromFavorites(string slug)
+    {
+        isLoading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var success = await FavoriteService.RemoveFavoriteAsync(userId, slug);
+                
+                if (success)
+                {
+                    // Xóa khỏi list ngay lập tức (real-time update)
+                    favoriteMovies = favoriteMovies.Where(m => m.Slug != slug).ToList();
+                    message = "Đã xóa khỏi danh sách yêu thích!";
+                    isError = false;
+                    
+                    // Auto hide message after 3 seconds
+                    _ = Task.Delay(3000).ContinueWith(_ => 
+                    {
+                        message = string.Empty;
+                        StateHasChanged();
+                    });
+                }
+                else
+                {
+                    message = "Không thể xóa phim này!";
+                    isError = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Lỗi: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

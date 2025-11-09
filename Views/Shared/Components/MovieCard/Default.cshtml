@@ -1,0 +1,23 @@
+@model WebMovie.Models.MovieItem
+@* MovieCard View Component - YÊU CẦU ĐỒ ÁN *@
+
+<div class="col-lg-2 col-md-3 col-sm-4 col-6 movie-card">
+    <a href="/Movie/Detail?slug=@Model.Slug">
+        <div class="position-relative">
+            <img src="@Model.PosterUrl" alt="@Model.Name" loading="lazy" />
+            @if (!string.IsNullOrEmpty(Model.Quality))
+            {
+                <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">@Model.Quality</span>
+            }
+            @if (!string.IsNullOrEmpty(Model.EpisodeCurrent))
+            {
+                <span class="badge bg-danger position-absolute top-0 end-0 m-2">@Model.EpisodeCurrent</span>
+            }
+        </div>
+        <div class="movie-title">@Model.Name</div>
+        @if (!string.IsNullOrEmpty(Model.OriginName))
+        {
+            <div class="text-muted small">@Model.OriginName</div>
+        }
+    </a>
+</div>

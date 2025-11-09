@@ -1,16 +1,19 @@
 using System.Text.Json;
 using WebMovie.Models;
+using WebMovie.Data;
 
 namespace WebMovie.Services
 {
     public class MovieApiService
     {
         private readonly HttpClient _httpClient;
+        private readonly ApplicationDbContext? _db;
         private const string BaseUrl = "https://phimapi.com";
 
-        public MovieApiService(HttpClient httpClient)
+        public MovieApiService(HttpClient httpClient, ApplicationDbContext? db = null)
         {
             _httpClient = httpClient;
+            _db = db;
             _httpClient.BaseAddress = new Uri(BaseUrl);
         }
 
@@ -28,6 +31,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -51,6 +55,7 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                ApplyCustomTitles(result);
                 return result;
             }
             catch (Exception ex)
@@ -239,5 +244,129 @@ namespace WebMovie.Services
                 return null;
             }
         }
+
+        // Lấy danh sách quốc gia
+        public async Task<List<Category>?> GetCountriesAsync()
+        {
+            try
+            {
+                Console.WriteLine("Calling GET /quoc-gia");
+                var response = await _httpClient.GetAsync("/quoc-gia");
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"API Response: {content}");
+
+                var countries = JsonSerializer.Deserialize<List<GenreResponse>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                var result = countries?.Select(c => new Category
+                {
+                    Name = c.Name,
+                    Slug = c.Slug,
+                    Id = c.Slug
+                }).ToList() ?? new List<Category>();
+
+                Console.WriteLine($"Parsed {result.Count} countries");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching countries: {ex.Message}");
+                return new List<Category>();
+            }
+        }
+
+        // Lấy danh sách thể loại
+        public async Task<List<Category>?> GetGenresAsync()
+        {
+            try
+            {
+                Console.WriteLine("Calling GET /the-loai");
+                var response = await _httpClient.GetAsync("/the-loai");
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"API Response: {content}");
+
+                var genres = JsonSerializer.Deserialize<List<GenreResponse>>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                var categories = genres?.Select(g => new Category
+                {
+                    Name = g.Name,
+                    Slug = g.Slug,
+                    Id = g.Slug
+                }).ToList() ?? new List<Category>();
+
+                Console.WriteLine($"Parsed {categories.Count} categories");
+                return categories;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching genres: {ex.Message}");
+                return new List<Category>();
+            }
+        }
+
+        #region Custom Titles Support
+        // Apply custom titles from database to movie list
+        private void ApplyCustomTitles(MovieListResponse? list)
+        {
+            if (list == null || list.Items == null || _db == null) return;
+
+            var slugs = list.Items.Select(i => i.Slug).Where(s => !string.IsNullOrEmpty(s)).Distinct().ToList();
+            if (!slugs.Any()) return;
+
+            var overrides = _db.CustomMovieTitles
+                .Where(c => slugs.Contains(c.MovieSlug))
+                .ToDictionary(c => c.MovieSlug, c => c);
+
+            foreach (var item in list.Items)
+            {
+                if (overrides.TryGetValue(item.Slug, out var custom))
+                {
+                    if (string.IsNullOrEmpty(custom.OriginalTitle))
+                    {
+                        custom.OriginalTitle = item.Name ?? "";
+                    }
+                    item.Name = custom.CustomTitle ?? item.Name;
+                }
+            }
+        }
+
+        private void ApplyCustomTitles(MovieDetailResponse? detail)
+        {
+            if (detail == null || detail.Movie == null || _db == null) return;
+
+            var slug = detail.Movie.Slug;
+            if (string.IsNullOrEmpty(slug)) return;
+
+            var custom = _db.CustomMovieTitles.FirstOrDefault(c => c.MovieSlug == slug);
+            if (custom != null)
+            {
+                if (string.IsNullOrEmpty(custom.OriginalTitle))
+                {
+                    custom.OriginalTitle = detail.Movie.Name ?? "";
+                }
+                detail.Movie.Name = custom.CustomTitle ?? detail.Movie.Name;
+                if (!string.IsNullOrEmpty(custom.CustomDescription))
+                {
+                    detail.Movie.Content = custom.CustomDescription;
+                }
+            }
+        }
+        #endregion
     }
+}
+
+// Helper model for API deserialization
+public class GenreResponse
+{
+    public string Name { get; set; } = "";
+    public string Slug { get; set; } = "";
 }

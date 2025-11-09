@@ -4,6 +4,7 @@
 }
 
 <main id="main-contents" class="col-xs-12 col-sm-12 col-md-8">
+    <!-- Trending Slider -->
     <div class="halim-trending-slider">
         <div class="section-bar clearfix">
             <h3 class="section-title"> <span><i class="fas fa-fire-alt halim-trending-icon"></i> Đang thịnh hành</span></h3>
@@ -14,7 +15,7 @@
                     var topMovies = new List<WebMovie.Models.MovieItem>();
                     if (Model?.Items != null)
                     {
-                        // Sort by most viewed movies
+                        // Sort by year to get latest movies
                         topMovies = Model.Items
                             .OrderByDescending(m => m.Year ?? 0)
                             .Take(10)
@@ -30,7 +31,6 @@
                         <div class="halim-trending-card">
                             <a href="/Movie/Detail?slug=@movie.Slug" class="halim-trending-link">
                                 <div class="halim-trending-poster-container">
-                                    <div class="halim-trending-poster-mask"></div>
                                     <img src="@movie.PosterUrl" alt="@movie.Name" class="halim-trending-poster-image" loading="lazy" />
                                     @if (!string.IsNullOrEmpty(movie.Quality))
                                     {
@@ -54,90 +54,64 @@
            </div>
         </div>
     </div>
-    <section>
-        <ul class="nav nav-pills nav-justified halim-schedule-block schedule">
-            <li role="presentation" class="active"> <a href="" title="" style="font-weight:600;font-size:16px;text-decoration:none;">Mới<br />Cập Nhật</a></li>
-            <li role="presentation" data-id="thu-hai"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Mon<br />Thứ Hai</a></li>
-            <li role="presentation" data-id="thu-ba"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Tue<br />Thứ Ba</a></li>
-            <li role="presentation" data-id="thu-tu"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Wed<br />Thứ Tư</a></li>
-            <li role="presentation" data-id="thu-nam"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Thu<br />Thứ Năm</a></li>
-            <li role="presentation" data-id="thu-sau"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Fri<br />Thứ Sáu</a></li>
-            <li role="presentation" data-id="thu-bay"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Sat<br />Thứ Bảy</a></li>
-            <li role="presentation" data-id="chu-nhat"> <a href="javascript:;" style="font-weight:600;font-size:16px;text-decoration:none;">Sun<br />Chủ Nhật</a></li>
-        </ul> 
-            <div class="halim-ajax-popular-post-loading hidden"></div>
-            <div class="section-bar clearfix"><h3 class="section-title"> <span>Mới Cập Nhật</span></h3></div>
-            <div class="row">
-                @if (Model?.Items != null && Model.Items.Any())
-                {
-                    @foreach (var movie in Model.Items)
-                    {
-                        <div class="col-lg-2 col-md-3 col-sm-4 col-6 movie-card">
-                            <a href="/Movie/Detail?slug=@movie.Slug">
-                                <div class="position-relative">
-                                    <img src="@movie.PosterUrl" alt="@movie.Name" loading="lazy" />
-                                    @if (!string.IsNullOrEmpty(movie.Quality))
-                                    {
-                                        <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">@movie.Quality</span>
-                                    }
-                                    @if (!string.IsNullOrEmpty(movie.EpisodeCurrent))
-                                    {
-                                        <span class="badge bg-danger position-absolute top-0 end-0 m-2">@movie.EpisodeCurrent</span>
-                                    }
-                                </div>
-                                <div class="movie-title">@movie.Name</div>
-                                @if (!string.IsNullOrEmpty(movie.OriginName))
-                                {
-                                    <div class="text-muted small">@movie.OriginName</div>
-                                }
-                            </a>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="col-12 text-center py-5">
-                        <i class="fas fa-film fa-3x text-muted mb-3"></i>
-                        <h4 class="text-muted">Không tìm thấy phim nào</h4>
-                    </div>
-                }
-                </div>
-                
-                <!-- Pagination -->
-                @if (Model?.Pagination != null && Model.Pagination.TotalPages > 1)
-                {
-                    <div class="pagination-container text-center mt-4">
-                        <ul class="pagination justify-content-center">
-                            @if (Model.Pagination.CurrentPage > 1)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=@(Model.Pagination.CurrentPage - 1)">
-                                        <i class="fas fa-chevron-left"></i> Trước
-                                    </a>
-                                </li>
-                            }
-                            
-                            @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
-                                i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
-                                i++)
-                            {
-                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
-                                    <a class="page-link" href="?page=@i">@i</a>
-                                </li>
-                            }
-                            
-                            @if (Model.Pagination.CurrentPage < Model.Pagination.TotalPages)
-                            {
-                                <li class="page-item">
-                                    <a class="page-link" href="?page=@(Model.Pagination.CurrentPage + 1)">
-                                        Sau <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                }
-           </div>
+    
+    <!-- Movie List Section -->
+    <section class="movie-list-section">
+        <div class="section-bar clearfix">
+            <h3 class="section-title"><span>Phim Mới Cập Nhật</span></h3>
         </div>
+        
+        <div class="row">
+            @if (Model?.Items != null && Model.Items.Any())
+            {
+                @* YÊU CẦU ĐỒ ÁN: Sử dụng View Component để hiển thị phim *@
+                @foreach (var movie in Model.Items)
+                {
+                    @await Component.InvokeAsync("MovieCard", movie)
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-film fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Không tìm thấy phim nào</h4>
+                </div>
+            }
+        </div>
+        
+        <!-- Pagination -->
+        @if (Model?.Pagination != null && Model.Pagination.TotalPages > 1)
+        {
+            <div class="pagination-container text-center mt-4">
+                <ul class="pagination justify-content-center">
+                    @if (Model.Pagination.CurrentPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(Model.Pagination.CurrentPage - 1)">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </a>
+                        </li>
+                    }
+                    
+                    @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
+                        i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                        i++)
+                    {
+                        <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i">@i</a>
+                        </li>
+                    }
+                    
+                    @if (Model.Pagination.CurrentPage < Model.Pagination.TotalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="?page=@(Model.Pagination.CurrentPage + 1)">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
     </section>
 </main>

@@ -73,14 +73,19 @@
                     </div>
                     
                     <nav class="nav flex-column mt-3">
->>>>>>> origin/duyan-search-favourite
+                        <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" || ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")" 
                            href="/Admin">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
                         
-                        <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString().Contains("Movie") == true ? "active" : "")" 
+                        <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageMovies" ? "active" : "")" 
                            href="/Admin/ManageMovies">
                             <i class="fas fa-film"></i> Quản lý phim
+                        </a>
+                        
+                        <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Titles" || ViewContext.RouteData.Values["Action"]?.ToString() == "EditTitle" ? "active" : "")" 
+                           href="/Admin/Titles">
+                            <i class="fas fa-heading"></i> Tiêu đề tùy chỉnh
                         </a>
                         
                         <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString().Contains("User") == true ? "active" : "")" 
@@ -94,18 +99,8 @@
                         
                         <hr style="border-color: rgba(255,255,255,0.2); margin: 20px 10px;">
                         
-                        <a class="nav-link" href="/Admin/CreateMovie">
-                            <i class="fas fa-plus"></i> Thêm phim mới
-                        </a>
-                        
-                        <hr style="border-color: rgba(255,255,255,0.2); margin: 20px 10px;">
-                        
                         <a class="nav-link" href="/" target="_blank">
                             <i class="fas fa-external-link-alt"></i> Xem website
-                        </a>
-                        
-                        <a class="nav-link" href="/Home/Detail">
-                            <i class="fas fa-eye"></i> Xem phim
                         </a>
                     </nav>
                     
@@ -152,7 +147,8 @@
 =======
                 <div class="px-3 mb-4">
                     <div class="col-md-6">
-                        @await Html.PartialAsync("_SearchBar")
+                        @* YÊU CẦU ĐỒ ÁN: View Component *@
+                        @await Component.InvokeAsync("SearchBar")
                     </div>
 >>>>>>> origin/duyan-search-favourite
                 <!-- Content -->

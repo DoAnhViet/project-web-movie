@@ -1,0 +1,133 @@
+@model List<WebMovie.Models.CustomMovieTitle>
+@{
+    ViewData["Title"] = "Quản lý tiêu đề phim";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-film me-2"></i>
+            Quản lý tiêu đề phim tùy chỉnh
+        </h2>
+        <a href="@Url.Action("ManageMovies")" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Thêm tiêu đề mới
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Chưa có tiêu đề tùy chỉnh nào. Hãy vào <a href="@Url.Action("ManageMovies")" class="alert-link">Quản lý phim</a> để thêm.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Slug</th>
+                                <th>Tiêu đề gốc</th>
+                                <th>Tiêu đề tùy chỉnh</th>
+                                <th>Mô tả tùy chỉnh</th>
+                                <th>Cập nhật lúc</th>
+                                <th>Người cập nhật</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <code>@item.MovieSlug</code>
+                                    </td>
+                                    <td>@item.OriginalTitle</td>
+                                    <td>
+                                        <strong class="text-primary">@item.CustomTitle</strong>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.CustomDescription))
+                                        {
+                                            <span class="text-muted">@(item.CustomDescription.Length > 50 ? item.CustomDescription.Substring(0, 50) + "..." : item.CustomDescription)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@item.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <small>@(item.UpdatedBy ?? "N/A")</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="@Url.Action("EditTitle", new { slug = item.MovieSlug })" 
+                                               class="btn btn-sm btn-warning" 
+                                               title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form asp-action="DeleteTitle" asp-route-id="@item.Id" method="post" class="d-inline" 
+                                                  onsubmit="return confirm('Bạn có chắc muốn xóa tiêu đề này?');">
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <p class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Tổng số: <strong>@Model.Count</strong> tiêu đề tùy chỉnh
+            </p>
+        </div>
+    }
+</div>
+
+<style>
+    .table code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        color: #d63384;
+    }
+    
+    .btn-group .btn {
+        margin: 0;
+    }
+    
+    .alert {
+        border-left: 4px solid;
+    }
+    
+    .alert-success {
+        border-left-color: #198754;
+    }
+    
+    .alert-info {
+        border-left-color: #0dcaf0;
+    }
+</style>

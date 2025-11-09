@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebMovie.Models;
 using WebMovie.Services;
-using WebMovie.Models;
 
 namespace WebMovie.Controllers
 {
@@ -163,12 +162,6 @@ namespace WebMovie.Controllers
 
             return View(vm);
         }
-
-        public AdminController(UserManager<ApplicationUser> userManager)
-        {
-            _userManager = userManager;
-        }
-
 
         // Quản lý người dùng
         public async Task<IActionResult> ManageUsers()

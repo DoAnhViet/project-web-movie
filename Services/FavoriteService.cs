@@ -23,7 +23,26 @@ namespace WebMovie.Services
         {
             try
             {
-                Console.WriteLine($"[AddFavorite] UserId: {userId}, Slug: {movie.Slug}");
+                // Validate input
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    Console.WriteLine("[AddFavorite] UserId is null or empty");
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(movie?.Slug))
+                {
+                    Console.WriteLine("[AddFavorite] Movie.Slug is null or empty");
+                    return false;
+                }
+
+                if (string.IsNullOrWhiteSpace(movie.Name))
+                {
+                    Console.WriteLine("[AddFavorite] Movie.Name is null or empty");
+                    return false;
+                }
+
+                Console.WriteLine($"[AddFavorite] UserId: {userId}, Slug: {movie.Slug}, Name: {movie.Name}");
 
                 var exists = await _context.FavoriteMovies
                     .AnyAsync(f => f.UserId == userId && f.MovieSlug == movie.Slug);
@@ -40,8 +59,8 @@ namespace WebMovie.Services
                     MovieSlug = movie.Slug,
                     MovieTitle = movie.Name,
                     OriginName = movie.OriginName ?? movie.Name,
-                    PosterUrl = movie.PosterUrl,
-                    ThumbUrl = movie.ThumbUrl,
+                    PosterUrl = movie.PosterUrl ?? "",
+                    ThumbUrl = movie.ThumbUrl ?? "",
                     Year = movie.Year,
                     AddedAt = DateTime.UtcNow
                 };
@@ -76,6 +95,33 @@ namespace WebMovie.Services
             {
             Console.WriteLine($"[FavoriteService] Remove error: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<List<MovieItem>> GetFavoriteMoviesAsync(string userId)
+        {
+            try
+            {
+                var favorites = await _context.FavoriteMovies
+                    .Where(f => f.UserId == userId)
+                    .OrderByDescending(f => f.AddedAt)
+                    .Select(f => new MovieItem
+                    {
+                        Name = f.MovieTitle,
+                        Slug = f.MovieSlug,
+                        OriginName = f.OriginName,
+                        PosterUrl = f.PosterUrl,
+                        ThumbUrl = f.ThumbUrl,
+                        Year = f.Year
+                    })
+                    .ToListAsync();
+
+                return favorites;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FavoriteService] Get favorites error: {ex.Message}");
+                return new List<MovieItem>();
             }
         }
     }

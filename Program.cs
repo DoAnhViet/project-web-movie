@@ -58,6 +58,12 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// YÊU CẦU ĐỒ ÁN: Thêm Razor Pages support
+builder.Services.AddRazorPages();
+
+// YÊU CẦU ĐỒ ÁN: Thêm Blazor Server support
+builder.Services.AddServerSideBlazor();
+
 builder.Services.AddControllersWithViews();
 
 
@@ -108,6 +114,12 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// YÊU CẦU ĐỒ ÁN: Map Razor Pages
+app.MapRazorPages();
+
+// YÊU CẦU ĐỒ ÁN: Map Blazor Hub
+app.MapBlazorHub();
 
 app.MapControllerRoute(
     name: "default",

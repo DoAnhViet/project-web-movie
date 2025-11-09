@@ -110,7 +110,20 @@ namespace WebMovie.Controllers
             return View("NewMovies", moviesResponse);
         }
 
-       
+        // 🔍 Tìm kiếm phim
+        public async Task<IActionResult> Search(string keyword, int page = 1)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return RedirectToAction("Index", "Home");
+
+            var moviesResponse = await _movieApiService.SearchMoviesAsync(keyword, page);
+            if (moviesResponse == null)
+                return View("Error");
+
+            ViewBag.Keyword = keyword;
+            ViewData["Title"] = $"Kết quả tìm kiếm: {keyword}";
+            return View("NewMovies", moviesResponse);
+        }
 
         // 🗓️ Lọc phim theo năm phát hành
         [HttpGet("nam/{year}")]
@@ -143,39 +156,23 @@ namespace WebMovie.Controllers
             // Dùng lại view hiển thị danh sách phim
             return View("NewMovies", moviesResponse);
         }
-    
-
-        
-
-        // Tìm kiếm phim
-        public async Task<IActionResult> Search(string keyword, int page = 1)
-        {
-            if (string.IsNullOrWhiteSpace(keyword))
-            {
-                TempData["ErrorMessage"] = "Vui lòng nhập từ khóa tìm kiếm!";
-                return RedirectToAction("Index", "Home");
-            }
-
-            var moviesResponse = await _movieApiService.SearchMoviesAsync(keyword, page);
-
-            if (moviesResponse == null || !moviesResponse.Status)
-            {
-                TempData["ErrorMessage"] = "Không tìm thấy phim nào phù hợp.";
-                return View("NewMovies", new MovieListResponse());
-            }
-
-            ViewBag.Keyword = keyword;
-            ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = moviesResponse.Pagination?.TotalPages ?? 1;
-
-            return View("NewMovies", moviesResponse);
-        }
 
         // ACTION YÊU THÍCH PHIM
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> ToggleFavorite(string slug, string name, string posterUrl)
         {
+            // Validate parameters
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                return Json(new { success = false, message = "Thông tin phim không hợp lệ (slug)" });
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return Json(new { success = false, message = "Thông tin phim không hợp lệ (name)" });
+            }
+
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
             var isFavorite = await _favoriteService.IsFavoriteAsync(userId, slug);
 
@@ -193,9 +190,9 @@ namespace WebMovie.Controllers
                 {
                     Slug = slug,
                     Name = name,
-                    PosterUrl = posterUrl,
+                    PosterUrl = posterUrl ?? "",
                     OriginName = name,
-                    ThumbUrl = posterUrl
+                    ThumbUrl = posterUrl ?? ""
                 };
                 success = await _favoriteService.AddFavoriteAsync(userId, movie);
                 message = "Đã thêm vào yêu thích!";
