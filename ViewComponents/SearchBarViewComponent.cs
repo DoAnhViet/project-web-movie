@@ -17,7 +17,7 @@ namespace WebMovie.ViewComponents
             }
 
             ViewBag.CurrentKeyword = currentKeyword;
-            return View(currentKeyword);
+            return View("Default", currentKeyword ?? "");
         }
     }
 }
