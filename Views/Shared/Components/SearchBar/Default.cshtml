@@ -1,35 +1,13 @@
 @model string
 @* View Component: SearchBar - YÊU CẦU ĐỒ ÁN *@
-<form asp-controller="Movie" asp-action="Search" method="get" class="d-flex search-form" role="search">
-    <input class="form-control me-2" 
-           type="search" 
-           name="keyword" 
-           placeholder="Tìm phim..." 
-           value="@Model" 
-           aria-label="Tìm kiếm phim" />
-    <button class="btn btn-danger" type="submit">
-        <i class="fas fa-search"></i>
-    </button>
+<form asp-controller="Movie" asp-action="Search" method="get" class="search-form-wrapper" role="search">
+    <div class="search-input-group">
+        <i class="fas fa-search search-icon"></i>
+        <input class="form-control search-input" 
+               type="search" 
+               name="keyword" 
+               placeholder="Search..." 
+               value="@Model" 
+               aria-label="Tìm kiếm phim" />
+    </div>
 </form>
-
-<style>
-    .search-form input {
-        background-color: #3d3d3d;
-        border: 1px solid #555;
-        color: #fff;
-        border-radius: 20px;
-        padding: 8px 20px;
-    }
-    .search-form input::placeholder {
-        color: #aaa;
-    }
-    .search-form input:focus {
-        background-color: #444;
-        border-color: #ff6b35;
-        box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
-    }
-    .search-form button {
-        border-radius: 20px;
-        padding: 8px 20px;
-    }
-</style>

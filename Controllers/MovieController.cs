@@ -160,6 +160,7 @@ namespace WebMovie.Controllers
         // ACTION YÊU THÍCH PHIM
         [HttpPost]
         [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleFavorite(string slug, string name, string posterUrl)
         {
             // Validate parameters

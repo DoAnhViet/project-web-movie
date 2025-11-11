@@ -16,6 +16,7 @@
 }
 
 <main id="main-contents" class="col-xs-12 col-sm-12 col-md-12">
+    @Html.AntiForgeryToken()
     @if (movie != null)
     {
         <section class="movie-detail-section">
@@ -142,16 +143,6 @@
                                 </div>
                             </div>
                             
-
-                            @if (!string.IsNullOrEmpty(movie.TrailerUrl))
-                            {
-                                <div class="trailer-section mt-4">
-                                    <h3><i class="fas fa-film"></i> Trailer</h3>
-                                    <div class="ratio ratio-16x9">
-                                        <iframe src="@movie.TrailerUrl" allowfullscreen></iframe>
-                                    </div>
-                                </div>
-                            }
                         </div>
                     </div>
                 </div>
@@ -199,8 +190,7 @@
     
 
     .movie-description h3,
-    .movie-details strong,
-    .trailer-section h3 {
+    .movie-details strong {
         color: #e94560;
         margin-bottom: 15px;
     }
@@ -240,13 +230,15 @@
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
 
+            const formData = new FormData();
+            formData.append('slug', slug);
+            formData.append('name', name);
+            formData.append('posterUrl', poster);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
             fetch('/Movie/ToggleFavorite', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: JSON.stringify({ slug, name, posterUrl: poster })
+                body: formData
             })
             .then(r => r.json())
             .then(data => {

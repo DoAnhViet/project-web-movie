@@ -9,12 +9,12 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <style>
         body {
-            background-color: #1a1a1a;
+            background-color: #1C1C1C;
             color: #fff;
         }
         .top-header {
-            background-color: #2d2d2d;
-            padding: 10px 0;
+            background-color: #1C1C1C;
+            padding: 15px 0;
         }
         .logo {
             color: #ff6b35;
@@ -24,34 +24,74 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            transition: none;
+        }
+        .logo:hover {
+            opacity: 1;
+            transform: none;
         }
         .logo img {
-            height: 40px;
+            height: 50px;
             width: auto;
         }
         .search-box {
-            max-width: 500px;
+            max-width: 100%;
             margin: 0 auto;
+            background-color: #1C1C1C;
+            padding: 0;
         }
-        .search-box input {
-            background-color: #3d3d3d;
-            border: none;
-            color: #fff;
-            border-radius: 20px;
-            padding: 8px 20px;
+        
+        /* Search Form Styles */
+        .search-form-wrapper {
+            width: 100%;
         }
-        .search-box input::placeholder {
-            color: #999;
+        .search-input-group {
+            position: relative;
+            width: 100%;
         }
+        .search-icon {
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #888;
+            font-size: 18px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .search-input {
+            background-color: #1C1C1C !important;
+            border: 2px solid #2a2a2a !important;
+            color: #fff !important;
+            border-radius: 50px !important;
+            padding: 14px 30px 14px 60px !important;
+            font-size: 15px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: none !important;
+            width: 100% !important;
+        }
+        .search-input::placeholder {
+            color: #666 !important;
+        }
+        .search-input:focus {
+            outline: none !important;
+            border-color: #3a3a3a !important;
+            background-color: #0f0f0f !important;
+            box-shadow: none !important;
+        }
+        .search-input:focus ~ .search-icon {
+            color: #aaa;
+        }
+        
         .top-header .nav-icons a {
             color: #fff;
             font-size: 20px;
             margin-left: 20px;
         }
         .main-nav {
-            background-color: #2d2d2d;
+            background-color: #1C1C1C;
             padding: 12px 0;
-            border-top: 1px solid #3d3d3d;
+            border-top: 1px solid #2a2a2a;
         }
         .main-nav .nav-link {
             color: #fff !important;
@@ -91,6 +131,31 @@
             text-decoration: none;
             color: #fff;
         }
+        /* Dropdown account styling */
+        .dropdown-menu {
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .dropdown-menu .dropdown-item {
+            color: #fff;
+            padding: 10px 20px;
+            transition: background-color 0.2s;
+        }
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #3d3d3d;
+            color: #ff6b35;
+        }
+        .dropdown-menu .dropdown-divider {
+            border-color: #444;
+        }
+        .dropdown-menu button.dropdown-item {
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -102,8 +167,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-2">
                         <a href="/" class="logo">
-                            <img src="~/images/logo.svg" alt="Logo" />
-                            <span>HoạtHình3D</span>
+                            <img src="~/images/logo.png" alt="Logo" />
                         </a>
                     </div>
                     <div class="col-md-7">
@@ -116,7 +180,7 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <a href="/Watch/History" title="Lịch sử"><i class="fas fa-history"></i></a>
-                            <a href="#" title="Đánh dấu"><i class="fas fa-bookmark"></i></a>
+                            <a href="/Favorite" title="Yêu thích"><i class="fas fa-bookmark"></i></a>
                             <div class="dropdown d-inline">
                                 <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown">
                                     <i class="fas fa-user"></i>
@@ -154,9 +218,6 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/Movie/NewMovies"><i class="fas fa-film"></i> Phim Mới Cập Nhật</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/Favorite"><i class="fas fa-heart"></i> Yêu thích</a>
                     </li>
                 </ul>
             </div>

@@ -138,12 +138,14 @@ body {
     padding: 12px;
     background: white;
     color: #444;
+    border: none;
     border-radius: 8px;
     font-weight: 600;
     font-size: 15px;
     text-decoration: none;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
+    cursor: pointer;
 }
 
 .btn-google img {

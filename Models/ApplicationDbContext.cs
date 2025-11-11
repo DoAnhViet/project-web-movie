@@ -22,6 +22,9 @@ namespace WebMovie.Models
 
         // Phim yêu thích của user
         public DbSet<FavoriteMovie> FavoriteMovies { get; set; } = null!;
+
+        // Comment phim
+        public DbSet<MovieComment> MovieComments { get; set; } = null!;
         
 
         protected override void OnModelCreating(ModelBuilder builder)

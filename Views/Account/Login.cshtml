@@ -33,16 +33,20 @@
                 </div>
 
                 <button type="submit" class="btn-account">Đăng nhập</button>
+            </form>
 
-                
-<div class="text-center my-3">
-    <p>Hoặc</p>
-</div>
+            <!-- Form riêng cho Google Login -->
+            <div class="text-center my-3">
+                <p>Hoặc</p>
+            </div>
 
-<a href="~/signin-google" class="btn-google">
-    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" />
-    Đăng nhập bằng Google
-</a>
+            <form asp-controller="Account" asp-action="ExternalLogin" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="provider" value="Google" />
+                <button type="submit" class="btn-google">
+                    <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" />
+                    Đăng nhập bằng Google
+                </button>
             </form>
 
             <div class="text-center mt-3">

@@ -43,6 +43,9 @@ else
 // Đăng ký FavoriteService
 builder.Services.AddScoped<FavoriteService>();
 
+// Đăng ký CommentService
+builder.Services.AddScoped<CommentService>();
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Cấu hình password
@@ -79,6 +82,8 @@ builder.Services
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
     .AddGoogle(options =>
     {
@@ -90,6 +95,26 @@ builder.Services
                                ?? Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET");
 
         options.CallbackPath = "/signin-google"; // Google mặc định gọi lại đường dẫn này
+        
+        // Sửa lỗi "oauth state was missing or invalid"
+        options.SaveTokens = true;
+        
+        // Cấu hình cookie cho correlation và nonce
+        options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.CorrelationCookie.HttpOnly = true;
+        options.CorrelationCookie.IsEssential = true;
+        
+        // Thời gian timeout cho state
+        options.RemoteAuthenticationTimeout = TimeSpan.FromMinutes(10);
+        
+        // Events để debug
+        options.Events.OnRemoteFailure = context =>
+        {
+            context.Response.Redirect("/Account/Login?error=google");
+            context.HandleResponse();
+            return Task.CompletedTask;
+        };
     });
 
 
