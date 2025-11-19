@@ -1,6 +1,7 @@
 @model WebMovie.Models.MovieDetailResponse
 @{
     ViewData["Title"] = Model?.Movie?.Name ?? "Xem phim";
+    ViewData["HideSearchBar"] = true; // Ẩn SearchBar để tránh conflict với form comment
 }
 
 <style>
@@ -87,7 +88,7 @@
                     
                     @if (movie.Actor != null && movie.Actor.Any())
                     {
-                        <p><strong>Diễn viên:</strong> @string.Join(", ", movie.Actor)</p>
+<p><strong>Diễn viên:</strong> @string.Join(", ", movie.Actor)</p>
                     }
                     
                     @if (movie.Director != null && movie.Director.Any())
@@ -130,6 +131,63 @@
                         }
                     </div>
                 }
+
+                <!-- Comment Section -->
+                <div class="comment-section mt-5">
+                    <h3 class="mb-4">
+                        <i class="fas fa-comments me-2"></i>
+                        Bình luận phim
+                    </h3>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="comment-form-card mb-4">
+                            <div class="d-flex align-items-start">
+                                <div class="user-avatar me-3">
+                                    <i class="fas fa-user-circle fa-2x text-primary-custom"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <form id="comment-form" onsubmit="return false;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="movieSlug" value="@Model.Movie.Slug" />
+                                        <input type="hidden" name="movieTitle" value="@Model.Movie.Name" />
+                                        <textarea 
+                                            id="comment-content" 
+                                            name="content" 
+                                            class="form-control comment-textarea" 
+                                            rows="3" 
+                                            placeholder="Viết bình luận của bạn về bộ phim này..."
+                                            maxlength="1000"></textarea>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <small id="char-count">0/1000 ký tự</small>
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-paper-plane me-1"></i>
+                                                Gửi bình luận
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <a href="/Account/Login?returnUrl=@Context.Request.Path@Context.Request.QueryString">Đăng nhập</a> để bình luận về bộ phim này
+                        </div>
+                    }
+
+                    <!-- Comments List -->
+                    <div id="comments-list">
+                        <!-- Comments will be loaded here via AJAX -->
+                        <div class="text-center py-4 comment-loading">
+                            <div class="spinner-border text-danger" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -140,105 +198,135 @@
             <a href="/Movie/NewMovies" class="alert-link">Quay lại danh sách phim</a>
         </div>
     }
-
-    <!-- COMMENT SECTION -->
-    @inject WebMovie.Services.CommentService CommentService
-    @{
-        var movieSlug = Context.Request.Query["slug"].ToString();
-        var comments = await CommentService.GetCommentsByMovieAsync(movieSlug);
-        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    }
-
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="comment-section" style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 10px;">
-                <h4 style="color: #fff; margin-bottom: 20px;">
-                    <i class="fas fa-comments"></i> Bình luận (@comments.Count)
-                </h4>
-
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <!-- Form thêm comment -->
-                    <div class="add-comment-form" style="margin-bottom: 30px;">
-                        @Html.AntiForgeryToken()
-                        <textarea id="comment-content" 
-                                  class="form-control" 
-                                  rows="3" 
-                                  placeholder="Viết bình luận của bạn..."
-                                  maxlength="1000"
-                                  style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid #555; resize: vertical;"></textarea>
-                        <div class="d-flex justify-content-between align-items-center mt-2">
-                            <small class="text-muted">
-                                <span id="char-count">0</span>/1000 ký tự
-                            </small>
-                            <button id="btn-submit-comment" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Gửi bình luận
-                            </button>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-info">
-                        <a href="/Account/Login?returnUrl=@Context.Request.Path@Context.Request.QueryString">Đăng nhập</a> để bình luận
-                    </div>
-                }
-
-                <!-- Danh sách comment -->
-                <div id="comments-list">
-                    @if (comments.Any())
-                    {
-                        foreach (var comment in comments)
-                        {
-                            var isOwner = comment.UserId == currentUserId;
-                            var isAdmin = User.IsInRole("Admin");
-                            
-                            <div class="comment-item" data-comment-id="@comment.Id" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid #ff6b35;">
-                                <div class="comment-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <div>
-                                        <strong style="color: #ff6b35;">@(comment.User?.FullName ?? comment.User?.Email ?? "Anonymous")</strong>
-                                        @if (User.IsInRole("Admin") && comment.User?.Email == "admin@webmovie.com")
-                                        {
-                                            <span class="badge bg-danger ms-2">Admin</span>
-                                        }
-                                        <small class="text-muted ms-2">
-                                            @comment.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                                            @if (comment.UpdatedAt != null)
-                                            {
-                                                <span>(đã chỉnh sửa)</span>
-                                            }
-                                        </small>
-                                    </div>
-                                    @if (isOwner || isAdmin)
-                                    {
-                                        <div class="comment-actions">
-                                            @if (isOwner)
-                                            {
-                                                <button class="btn btn-sm btn-outline-secondary btn-edit-comment" title="Sửa">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            }
-                                            <button class="btn btn-sm btn-outline-danger btn-delete-comment" title="Xóa">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    }
-                                </div>
-                                <div class="comment-content" style="color: #ddd;">
-                                    @comment.Content
-                                </div>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="text-muted text-center">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+
+<style>
+    .comment-section {
+        background: #1a1a1a;
+        padding: 35px;
+        border-radius: 12px;
+        border: 1px solid #2a2a2a;
+    }
+    .comment-section h3 {
+        color: #fff;
+        font-weight: 700;
+        margin-bottom: 25px;
+    }
+    .comment-form-card {
+        background: #2a2a2a;
+        padding: 25px;
+        border-radius: 10px;
+        border: 1px solid #3a3a3a;
+    }
+    .comment-textarea {
+        background: #1a1a1a;
+        border: 2px solid #3a3a3a;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        color: #fff;
+    }
+    .comment-textarea:focus {
+        background: #1a1a1a;
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+        color: #fff;
+    }
+    .comment-textarea::placeholder {
+        color: #888;
+    }
+    .comment-item {
+        background: #2a2a2a;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #3a3a3a;
+        transition: all 0.3s ease;
+    }
+    .comment-item:hover {
+        border-color: #4a4a4a;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .comment-author {
+        font-weight: 600;
+        color: #fff;
+        font-size: 1rem;
+    }
+    .comment-date {
+        font-size: 0.875rem;
+        color: #888;
+    }
+    .comment-content {
+        color: #d1d1d1;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 0.95rem;
+    }
+    .comment-actions {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #3a3a3a;
+    }
+    .btn-delete-comment {
+        background: transparent;
+        color: #ff6b6b;
+        font-size: 0.875rem;
+        padding: 4px 12px;
+        border: 1px solid #ff6b6b;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    .btn-delete-comment:hover {
+        background: #ff6b6b;
+        color: white;
+    }
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .text-primary-custom {
+        color: #ff6b35 !important;
+    }
+    #char-count {
+        color: #888;
+    }
+    .alert-info {
+        background: #2a2a2a;
+        border: 1px solid #3a3a3a;
+        color: #d1d1d1;
+    }
+    .alert-info a {
+        color: #ff6b35;
+        font-weight: 600;
+    }
+    .alert-info a:hover {
+        color: #ff8555;
+    }
+    .comment-loading {
+        color: #888;
+    }
+    .comment-empty {
+        color: #888;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    .comment-empty i {
+        color: #555;
+        font-size: 3rem;
+        margin-bottom: 15px;
+        display: block;
+    }
+</style>
 
 @section Scripts {
     <script>
@@ -251,7 +339,7 @@
         var isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
 
         function changeEpisode(element) {
-            var embedUrl = element.getAttribute('data-embed');
+var embedUrl = element.getAttribute('data-embed');
             var episodeSlug = element.getAttribute('data-slug') || '';
             var episodeName = element.textContent.trim();
             
@@ -273,6 +361,13 @@
                 // Reset progress tracking for new episode
                 if (isAuthenticated) {
                     loadWatchProgress();
+                    // Save an initial history entry immediately when user clicks to watch
+                    try {
+                        // save 0s as current time; totalTime unknown so pass 0
+                        saveWatchProgress(0, 0);
+                    } catch (e) {
+                        console.error('Error saving initial watch progress:', e);
+                    }
                 }
             }
         }
@@ -303,7 +398,7 @@
                 <div class="alert alert-info alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
                     <strong><i class="fas fa-play-circle"></i> Tiếp tục xem?</strong>
                     <p class="mb-2">Bạn đã xem đến ${timeStr}. Bạn có muốn tiếp tục?</p>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="this.parentElement.remove();">
+<button type="button" class="btn btn-sm btn-primary" onclick="this.parentElement.remove();">
                         <i class="fas fa-check"></i> OK
                     </button>
                     <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -340,6 +435,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
@@ -357,6 +453,14 @@
             // Load progress khi vào trang
             loadWatchProgress();
             
+            // Save initial history when opening the page (user started watching)
+            try {
+                var initialEstimatedTotal = (typeof watchTime === 'number' ? watchTime + 600 : 0);
+                saveWatchProgress(watchTime || 0, initialEstimatedTotal);
+            } catch (e) {
+                console.error('Error saving initial page watch progress:', e);
+            }
+
             // Lưu tiến trình mỗi 30 giây (giả định user đang xem)
             var watchTime = 0;
             @if (ViewBag.WatchHistory != null)
@@ -371,133 +475,189 @@
             }, 30000); // Mỗi 30 giây
         }
 
-        // Cleanup khi thoát trang
-        window.addEventListener('beforeunload', function() {
-            if (saveProgressInterval) {
-                clearInterval(saveProgressInterval);
+        // ========== COMMENT FUNCTIONS ==========
+        
+        // Load comments
+        function loadComments() {
+            fetch(`/Comment/GetComments?movieSlug=${encodeURIComponent(movieSlug)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayComments(data.comments);
+                    } else {
+                        document.getElementById('comments-list').innerHTML = 
+                            '<p class="text-center text-muted">Không thể tải bình luận</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading comments:', error);
+                    document.getElementById('comments-list').innerHTML = 
+                        '<p class="text-center text-danger">Lỗi khi tải bình luận</p>';
+                });
+        }
+
+        // Display comments
+        function displayComments(comments) {
+            var container = document.getElementById('comments-list');
+            
+            if (!comments || comments.length === 0) {
+                container.innerHTML = `
+                    <div class="comment-empty">
+                        <i class="fas fa-comment-slash"></i>
+                        <p>Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            var html = '';
+            comments.forEach(comment => {
+                var commentDate = new Date(comment.createdAt);
+                var timeAgo = getTimeAgo(commentDate);
+                var canDelete = ${(User.Identity?.IsAuthenticated == true ? "true" : "false")} && 
+                                (comment.userId === '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value');
+
+                html += `
+                    <div class="comment-item" data-comment-id="${comment.id}">
+                        <div class="comment-header">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-user-circle fa-2x text-primary-custom me-2"></i>
+                                <div>
+                                    <div class="comment-author">${escapeHtml(comment.userName)}</div>
+                                    <div class="comment-date">${timeAgo}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="comment-content">${escapeHtml(comment.content)}</div>
+                        ${canDelete ? `
+                            <div class="comment-actions">
+                                <button class="btn btn-sm btn-delete-comment" onclick="deleteComment(${comment.id})">
+                                    <i class="fas fa-trash me-1"></i>Xóa
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Submit comment - Setup event listeners when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Character count
+            var textarea = document.getElementById('comment-content');
+            var charCount = document.getElementById('char-count');
+            
+            if (textarea) {
+                textarea.addEventListener('input', function() {
+                    charCount.textContent = this.value.length + '/1000 ký tự';
+                });
+            }
+
+            // Submit comment form
+            var commentForm = document.getElementById('comment-form');
+            if (commentForm) {
+                commentForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    var content = textarea.value.trim();
+                    if (!content) {
+                        alert('Vui lòng nhập nội dung bình luận');
+                        return;
+                    }
+
+                    var formData = new FormData(this);
+                    var submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang gửi...';
+
+                    fetch('/Comment/Add', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            textarea.value = '';
+                            charCount.textContent = '0/1000 ký tự';
+                            loadComments(); // Reload comments
+                            
+                            // Show success message
+                            var alert = document.createElement('div');
+                            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+                            alert.innerHTML = `
+                                <i class="fas fa-check-circle me-2"></i>${data.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            `;
+                            commentForm.parentElement.insertBefore(alert, commentForm.nextSibling);
+                            setTimeout(() => alert.remove(), 3000);
+                        } else {
+                            alert(data.message || 'Có lỗi xảy ra');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi gửi bình luận');
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Gửi bình luận';
+                    });
+                });
             }
         });
 
-        // =============== COMMENT FUNCTIONALITY ===============
-        // Đếm ký tự
-        const commentTextarea = document.getElementById('comment-content');
-        const charCountSpan = document.getElementById('char-count');
-        
-        if (commentTextarea) {
-            commentTextarea.addEventListener('input', function() {
-                charCountSpan.textContent = this.value.length;
-            });
-        }
+        // Delete comment
+        function deleteComment(commentId) {
+            if (!confirm('Bạn có chắc muốn xóa bình luận này?')) {
+                return;
+            }
 
-        // Gửi comment
-        const btnSubmitComment = document.getElementById('btn-submit-comment');
-        if (btnSubmitComment) {
-            btnSubmitComment.addEventListener('click', function() {
-                const content = commentTextarea.value.trim();
-                
-                if (!content) {
-                    alert('Vui lòng nhập nội dung bình luận');
-                    return;
+            fetch('/Comment/Delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id=${commentId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadComments(); // Reload comments
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra');
                 }
-
-                const formData = new FormData();
-                formData.append('movieSlug', movieSlug);
-                formData.append('movieTitle', movieTitle);
-                formData.append('content', content);
-                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-                btnSubmitComment.disabled = true;
-                btnSubmitComment.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
-
-                fetch('/Comment/Add', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload(); // Reload để hiện comment mới
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(err => {
-                    alert('Có lỗi xảy ra, vui lòng thử lại');
-                    console.error(err);
-                })
-                .finally(() => {
-                    btnSubmitComment.disabled = false;
-                    btnSubmitComment.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi bình luận';
-                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi xóa bình luận');
             });
         }
 
-        // Xóa comment
-        document.querySelectorAll('.btn-delete-comment').forEach(btn => {
-            btn.addEventListener('click', function() {
-                if (!confirm('Bạn có chắc muốn xóa comment này?')) return;
+        // Helper functions
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-                const commentItem = this.closest('.comment-item');
-                const commentId = commentItem.dataset.commentId;
+        function getTimeAgo(date) {
+            var now = new Date();
+            var seconds = Math.floor((now - date) / 1000);
+            
+            if (seconds < 60) return 'Vừa xong';
+            if (seconds < 3600) return Math.floor(seconds / 60) + ' phút trước';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + ' giờ trước';
+            if (seconds < 604800) return Math.floor(seconds / 86400) + ' ngày trước';
+            
+            return date.toLocaleDateString('vi-VN');
+        }
 
-                const formData = new FormData();
-                formData.append('commentId', commentId);
-                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-                fetch('/Comment/Delete', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        commentItem.remove();
-                        alert(data.message);
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(err => {
-                    alert('Có lỗi xảy ra');
-                    console.error(err);
-                });
-            });
+        // Load comments when page loads
+        window.addEventListener('load', function() {
+            loadComments();
         });
 
-        // Sửa comment (simple version - prompt)
-        document.querySelectorAll('.btn-edit-comment').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const commentItem = this.closest('.comment-item');
-                const commentId = commentItem.dataset.commentId;
-                const currentContent = commentItem.querySelector('.comment-content').textContent.trim();
-                
-                const newContent = prompt('Sửa nội dung comment:', currentContent);
-                if (!newContent || newContent === currentContent) return;
-
-                const formData = new FormData();
-                formData.append('commentId', commentId);
-                formData.append('content', newContent);
-                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-
-                fetch('/Comment/Update', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        commentItem.querySelector('.comment-content').textContent = data.newContent;
-                        alert(data.message);
-                    } else {
-                        alert(data.message);
-                    }
-                })
-                .catch(err => {
-                    alert('Có lỗi xảy ra');
-                    console.error(err);
-                });
-            });
-        });
     </script>
 }

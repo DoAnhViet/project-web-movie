@@ -171,10 +171,13 @@
                         </a>
                     </div>
                     <div class="col-md-7">
-                        <div class="search-box">
-                            @* YÊU CẦU ĐỒ ÁN: Sử dụng View Component thay vì Partial View *@
-                            @await Component.InvokeAsync("SearchBar")
-                        </div>
+                        @if (ViewData["HideSearchBar"] == null || !(bool)ViewData["HideSearchBar"])
+                        {
+                            <div class="search-box">
+                                @* YÊU CẦU ĐỒ ÁN: Sử dụng View Component thay vì Partial View *@
+                                @await Component.InvokeAsync("SearchBar")
+                            </div>
+                        }
                     </div>
                     <div class="col-md-3 text-end nav-icons">
                         @if (User.Identity?.IsAuthenticated == true)

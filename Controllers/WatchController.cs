@@ -1,70 +1,49 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using WebMovie.Models;
 using WebMovie.Services;
-using System.Security.Claims;
 
 namespace WebMovie.Controllers
 {
-    public class WatchController : Controller
+    public class WatchController : BaseController
     {
-        private readonly MovieApiService _movieApiService;
         private readonly ApplicationDbContext _context;
-        private readonly FavoriteService _favoriteService; // THÊM DÒNG NÀY
+        private readonly ILogger<WatchController> _logger;
 
-        public WatchController(MovieApiService movieApiService, ApplicationDbContext context, FavoriteService favoriteService)
+        public WatchController(MovieApiService movieApiService, ApplicationDbContext context, ILogger<WatchController> logger)
+            : base(movieApiService)
         {
-            _movieApiService = movieApiService;
             _context = context;
-            _favoriteService = favoriteService; // THÊM DÒNG NÀY
-        }
-                public class ToggleFavoriteRequest
-        {
-            public string Slug { get; set; } = "";
-            public string Name { get; set; } = "";
-            public string PosterUrl { get; set; } = "";
+            _logger = logger;
         }
 
-        // Xem phim với episode cụ thể
+        // Xem phim
         public async Task<IActionResult> Index(string slug, string? episode)
         {
             if (string.IsNullOrEmpty(slug))
-            {
                 return RedirectToAction("NewMovies", "Movie");
-            }
 
             try
             {
                 var movieDetail = await _movieApiService.GetMovieDetailAsync(slug);
-                if (movieDetail == null || movieDetail.Movie == null)
-                {
+                if (movieDetail?.Movie == null)
                     return RedirectToAction("NewMovies", "Movie");
-                }
 
-                var movie = movieDetail.Movie;
-
-                // TRUYỀN DỮ LIỆU CHO VIEW
-                ViewBag.Slug = movie.Slug;
-                ViewBag.Name = movie.Name;
-                ViewBag.PosterUrl = movie.PosterUrl;
-
-                // KIỂM TRA YÊU THÍCH
+                // Nếu user đã đăng nhập => lấy lịch sử xem
                 if (User.Identity?.IsAuthenticated == true)
                 {
-                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-                    ViewBag.IsFavorite = await _favoriteService.IsFavoriteAsync(userId, movie.Slug);
+                    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (!string.IsNullOrEmpty(userId))
+                    {
+                        var watchHistory = await _context.WatchHistories
+                            .Where(w => w.UserId == userId && w.MovieSlug == slug)
+                            .OrderByDescending(w => w.LastWatchedAt)
+                            .FirstOrDefaultAsync();
 
-                    // Lịch sử xem
-                    var watchHistory = await _context.WatchHistories
-                        .Where(w => w.UserId == userId && w.MovieSlug == slug)
-                        .OrderByDescending(w => w.LastWatchedAt)
-                        .FirstOrDefaultAsync();
-                    ViewBag.WatchHistory = watchHistory;
-                }
-                else
-                {
-                    ViewBag.IsFavorite = false;
+                        ViewBag.WatchHistory = watchHistory;
+                    }
                 }
 
                 return View(movieDetail);
@@ -75,69 +54,30 @@ namespace WebMovie.Controllers
             }
         }
 
-        // === THÊM: TOGGLE YÊU THÍCH ===
-        [HttpPost]
-        [Authorize]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleFavorite([FromBody] ToggleFavoriteRequest request)
-        {
-            try
-            {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-                if (string.IsNullOrEmpty(userId))
-                    return Json(new { success = false, message = "Không tìm thấy user" });
-
-                if (string.IsNullOrEmpty(request.Slug))
-                    return Json(new { success = false, message = "Thiếu slug phim" });
-
-                var isFavorite = await _favoriteService.IsFavoriteAsync(userId, request.Slug);
-
-                bool success;
-                string message;
-
-                if (isFavorite)
-                {
-                    success = await _favoriteService.RemoveFavoriteAsync(userId, request.Slug);
-                    message = success ? "Đã xóa khỏi yêu thích!" : "Lỗi khi xóa!";
-                }
-                else
-                {
-                    var movieItem = new MovieItem
-                    {
-                        Slug = request.Slug,
-                        Name = request.Name,
-                        PosterUrl = request.PosterUrl,
-                        OriginName = request.Name,
-                        ThumbUrl = request.PosterUrl,
-                        Year = null
-                    };
-                    success = await _favoriteService.AddFavoriteAsync(userId, movieItem);
-                    message = success ? "Đã thêm vào yêu thích!" : "Lỗi khi thêm!";
-                }
-
-                return Json(new { success, isFavorite = !isFavorite, message });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ToggleFavorite] Lỗi: {ex.Message}\n{ex.StackTrace}");
-                return Json(new { success = false, message = "Lỗi server!" });
-            }
-        }
-        // Các API cũ giữ nguyên
+        // API lưu tiến trình xem
         [Authorize]
         [HttpPost]
         public async Task<IActionResult> SaveWatchProgress([FromBody] WatchProgressRequest request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger?.LogWarning("SaveWatchProgress called without authenticated user.");
+                return Unauthorized();
+            }
 
+            // Log incoming request for debugging
             try
             {
+                _logger?.LogInformation("SaveWatchProgress request received for User={UserId}, MovieSlug={MovieSlug}, EpisodeSlug={EpisodeSlug}, CurrentTime={CurrentTime}, TotalTime={TotalTime}",
+                    userId, request.MovieSlug, request.EpisodeSlug, request.CurrentTime, request.TotalTime);
+
+                // Find existing history for this user + movie (regardless of episode)
+// so we update the same movie entry instead of creating duplicates for different episodes.
                 var watchHistory = await _context.WatchHistories
-                    .FirstOrDefaultAsync(w => 
-                        w.UserId == userId && 
-                        w.MovieSlug == request.MovieSlug && 
-                        w.EpisodeSlug == request.EpisodeSlug);
+                    .FirstOrDefaultAsync(w =>
+                        w.UserId == userId &&
+                        w.MovieSlug == request.MovieSlug);
 
                 if (watchHistory == null)
                 {
@@ -155,54 +95,77 @@ namespace WebMovie.Controllers
                         LastWatchedAt = DateTime.UtcNow
                     };
                     _context.WatchHistories.Add(watchHistory);
+                    _logger?.LogInformation("Creating new WatchHistory for user {UserId}, movie {MovieSlug}", userId, request.MovieSlug);
                 }
                 else
                 {
+                    // Update movie-level fields so the existing history reflects the latest episode the user watched
+                    watchHistory.MovieTitle = request.MovieTitle ?? watchHistory.MovieTitle;
+                    watchHistory.PosterUrl = request.PosterUrl ?? watchHistory.PosterUrl;
+                    watchHistory.EpisodeName = request.EpisodeName;
+                    watchHistory.EpisodeSlug = request.EpisodeSlug;
                     watchHistory.CurrentTime = request.CurrentTime;
                     watchHistory.TotalTime = request.TotalTime;
                     watchHistory.LastWatchedAt = DateTime.UtcNow;
                     _context.WatchHistories.Update(watchHistory);
+                    _logger?.LogInformation("Updated WatchHistory(Id={Id}) for user {UserId} with episode {EpisodeSlug}", watchHistory.Id, userId, request.EpisodeSlug);
                 }
 
-                await _context.SaveChangesAsync();
+                var saved = await _context.SaveChangesAsync();
+                _logger?.LogInformation("SaveWatchProgress completed. SaveChanges affected {Count} rows.", saved);
+
                 return Json(new { success = true, message = "Đã lưu tiến trình xem" });
             }
             catch (Exception ex)
             {
+                _logger?.LogError(ex, "Error in SaveWatchProgress for user {UserId}, movie {MovieSlug}", userId, request?.MovieSlug);
                 return Json(new { success = false, message = ex.Message });
             }
         }
 
+        // API: Lấy tiến trình xem đã lưu cho một phim (nếu có)
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> GetWatchProgress(string movieSlug, string episodeSlug)
+        public async Task<IActionResult> GetWatchProgress(string movieSlug)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(movieSlug))
+                return Json(new { success = false, message = "Invalid request" });
 
-            var watchHistory = await _context.WatchHistories
-                .FirstOrDefaultAsync(w => 
-                    w.UserId == userId && 
-                    w.MovieSlug == movieSlug && 
-                    w.EpisodeSlug == episodeSlug);
+            try
+            {
+                var watch = await _context.WatchHistories
+                    .Where(w => w.UserId == userId && w.MovieSlug == movieSlug)
+                    .OrderByDescending(w => w.LastWatchedAt)
+                    .FirstOrDefaultAsync();
 
-            if (watchHistory == null)
-                return Json(new { success = false, currentTime = 0 });
+                if (watch == null)
+                    return Json(new { success = false });
 
-            return Json(new 
-            { 
-                success = true, 
-                currentTime = watchHistory.CurrentTime,
-                totalTime = watchHistory.TotalTime,
-                progressPercent = watchHistory.ProgressPercent
-            });
+                return Json(new
+                {
+                    success = true,
+                    currentTime = watch.CurrentTime,
+                    totalTime = watch.TotalTime,
+                    episodeSlug = watch.EpisodeSlug,
+                    episodeName = watch.EpisodeName,
+                    progressPercent = watch.ProgressPercent
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error in GetWatchProgress for user {UserId}, movie {MovieSlug}", userId, movieSlug);
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
+        // Lịch sử xem
         [Authorize]
         public async Task<IActionResult> History()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return RedirectToAction("Login", "Account");
 
             var histories = await _context.WatchHistories
                 .Where(w => w.UserId == userId)
@@ -212,8 +175,67 @@ namespace WebMovie.Controllers
 
             return View(histories);
         }
+
+        // Xóa một mục lịch sử
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> DeleteHistory([FromBody] DeleteHistoryRequest request)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            try
+            {
+                var history = await _context.WatchHistories
+                    .FirstOrDefaultAsync(w => w.Id == request.Id && w.UserId == userId);
+
+                if (history == null)
+                    return Json(new { success = false, message = "Không tìm thấy lịch sử" });
+
+                _context.WatchHistories.Remove(history);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // Debug: trả về số lượng và vài mục lịch sử của user hiện tại (tạm thời)
+        [Authorize]
+[HttpGet]
+        public async Task<IActionResult> DebugHistories()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var list = await _context.WatchHistories
+                .Where(w => w.UserId == userId)
+                .OrderByDescending(w => w.LastWatchedAt)
+                .Take(20)
+                .ToListAsync();
+
+            return Json(new
+            {
+                count = list.Count,
+                items = list.Select(w => new {
+                    w.Id,
+                    w.MovieSlug,
+                    w.MovieTitle,
+                    w.EpisodeName,
+                    w.CurrentTime,
+                    w.TotalTime,
+                    w.LastWatchedAt
+                })
+            });
+        }
     }
 
+    // Model lưu tiến trình xem
     public class WatchProgressRequest
     {
         public string MovieSlug { get; set; } = "";
@@ -223,5 +245,11 @@ namespace WebMovie.Controllers
         public string EpisodeSlug { get; set; } = "";
         public int CurrentTime { get; set; }
         public int TotalTime { get; set; }
+    }
+
+    // Request model for deleting history
+    public class DeleteHistoryRequest
+    {
+        public int Id { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebMovie.Models
 {
@@ -7,6 +8,7 @@ namespace WebMovie.Models
     /// Lịch sử xem phim của user
     /// Lưu lại tập đã xem, thời gian xem đến đâu
     /// </summary>
+    [Index(nameof(UserId), nameof(MovieSlug), IsUnique = true)]
     public class WatchHistory
     {
         [Key]

@@ -4,130 +4,203 @@
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>
-            <i class="fas fa-film me-2"></i>
-            Quản lý tiêu đề phim tùy chỉnh
-        </h2>
+<style>
+    .page-header {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .page-header:hover {
+        border-color: #000;
+    }
+    .table code {
+        background-color: #f1f3f5;
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: #e83e8c;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    .btn-group .btn {
+        margin: 0;
+    }
+    .alert {
+        border-left: 4px solid;
+        border-radius: 10px;
+    }
+    .alert-success {
+        border-left-color: #28a745;
+        background-color: #d4edda;
+    }
+    .alert-info {
+        border-left-color: #17a2b8;
+        background-color: #d1ecf1;
+    }
+    .custom-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .custom-table:hover {
+        border-color: #000;
+    }
+    .custom-table thead {
+        background: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .custom-table thead th {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 15px;
+    }
+    .custom-table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+    .empty-state {
+        background: white;
+        padding: 60px 30px;
+        border-radius: 12px;
+        text-align: center;
+        border: 2px solid #e5e7eb;
+    }
+    .empty-state i {
+        color: #cbd5e0;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-heading text-primary me-2"></i>
+                Quản lý tiêu đề phim tùy chỉnh
+            </h2>
+            <p class="text-muted mb-0">Tùy chỉnh tiêu đề và mô tả cho các bộ phim</p>
+        </div>
         <a href="@Url.Action("ManageMovies")" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Thêm tiêu đề mới
+            <i class="fas fa-plus me-2"></i>Thêm tiêu đề mới
         </a>
     </div>
+</div>
 
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i>
-            @TempData["SuccessMessage"]
+            <strong>Thành công!</strong> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
     @if (Model == null || !Model.Any())
     {
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            Chưa có tiêu đề tùy chỉnh nào. Hãy vào <a href="@Url.Action("ManageMovies")" class="alert-link">Quản lý phim</a> để thêm.
+        <div class="empty-state">
+            <i class="fas fa-folder-open fa-5x"></i>
+            <h4 class="text-muted mb-3">Chưa có tiêu đề tùy chỉnh</h4>
+            <p class="text-muted mb-4">Bắt đầu tùy chỉnh tiêu đề phim để cải thiện SEO và trải nghiệm người dùng</p>
+            <a href="@Url.Action("ManageMovies")" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Thêm tiêu đề đầu tiên
+            </a>
         </div>
     }
     else
     {
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-dark">
+        <div class="card custom-table shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">
+                                <i class="fas fa-link me-1"></i>Slug
+                            </th>
+                            <th style="width: 20%;">
+                                <i class="fas fa-film me-1"></i>Tiêu đề gốc
+                            </th>
+                            <th style="width: 20%;">
+                                <i class="fas fa-star me-1"></i>Tiêu đề tùy chỉnh
+                            </th>
+                            <th style="width: 20%;">
+                                <i class="fas fa-align-left me-1"></i>Mô tả
+                            </th>
+                            <th style="width: 12%;">
+                                <i class="fas fa-clock me-1"></i>Cập nhật
+                            </th>
+                            <th style="width: 13%;" class="text-center">
+                                <i class="fas fa-cog me-1"></i>Thao tác
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
                             <tr>
-                                <th>Slug</th>
-                                <th>Tiêu đề gốc</th>
-                                <th>Tiêu đề tùy chỉnh</th>
-                                <th>Mô tả tùy chỉnh</th>
-                                <th>Cập nhật lúc</th>
-                                <th>Người cập nhật</th>
-                                <th class="text-center">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td>
-                                        <code>@item.MovieSlug</code>
-                                    </td>
-                                    <td>@item.OriginalTitle</td>
-                                    <td>
-                                        <strong class="text-primary">@item.CustomTitle</strong>
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.CustomDescription))
-                                        {
-                                            <span class="text-muted">@(item.CustomDescription.Length > 50 ? item.CustomDescription.Substring(0, 50) + "..." : item.CustomDescription)</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">-</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <small>@item.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</small>
-                                    </td>
-                                    <td>
-                                        <small>@(item.UpdatedBy ?? "N/A")</small>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a href="@Url.Action("EditTitle", new { slug = item.MovieSlug })" 
-                                               class="btn btn-sm btn-warning" 
-                                               title="Chỉnh sửa">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <form asp-action="DeleteTitle" asp-route-id="@item.Id" method="post" class="d-inline" 
-                                                  onsubmit="return confirm('Bạn có chắc muốn xóa tiêu đề này?');">
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                <td>
+                                    <code>@item.MovieSlug</code>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;" title="@item.OriginalTitle">
+                                        @item.OriginalTitle
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong class="text-primary">@item.CustomTitle</strong>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.CustomDescription))
+                                    {
+                                        <div class="text-muted text-truncate" style="max-width: 200px;" title="@item.CustomDescription">
+                                            @item.CustomDescription
                                         </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Chưa có mô tả</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <div>@item.UpdatedAt.ToString("dd/MM/yyyy")</div>
+                                        <div>@item.UpdatedAt.ToString("HH:mm")</div>
+                                    </small>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("EditTitle", new { slug = item.MovieSlug })" 
+                                           class="btn btn-sm btn-warning" 
+                                           title="Chỉnh sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form asp-action="DeleteTitle" asp-route-id="@item.Id" method="post" class="d-inline" 
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa tiêu đề tùy chỉnh này?');">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="mt-3">
-            <p class="text-muted">
-                <i class="fas fa-info-circle"></i>
-                Tổng số: <strong>@Model.Count</strong> tiêu đề tùy chỉnh
-            </p>
+        <div class="mt-4 bg-white p-3 rounded shadow-sm">
+            <div class="d-flex align-items-center text-muted">
+                <i class="fas fa-info-circle me-2"></i>
+                <span>Tổng số: <strong class="text-primary">@Model.Count</strong> tiêu đề tùy chỉnh</span>
+            </div>
         </div>
     }
-</div>
 
-<style>
-    .table code {
-        background-color: #f8f9fa;
-        padding: 0.2rem 0.4rem;
-        border-radius: 0.25rem;
-        color: #d63384;
-    }
-    
-    .btn-group .btn {
-        margin: 0;
-    }
-    
-    .alert {
-        border-left: 4px solid;
-    }
-    
-    .alert-success {
-        border-left-color: #198754;
-    }
-    
-    .alert-info {
-        border-left-color: #0dcaf0;
-    }
-</style>

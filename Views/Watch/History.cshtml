@@ -1,6 +1,7 @@
 @model List<WebMovie.Models.WatchHistory>
 @{
     ViewData["Title"] = "Lịch sử xem phim";
+    ViewData["HideSearchBar"] = true; // Ẩn SearchBar component để tránh conflict
 }
 
 <div class="container my-4">
@@ -13,74 +14,44 @@
                 </a>
             </div>
 
+            <div class="mb-3">
+                <input type="text" class="history-search-input form-control" placeholder="Tìm kiếm phim trong lịch sử..." id="history-search" autocomplete="off">
+            </div>
+
             @if (Model != null && Model.Any())
             {
-                <div class="row">
-                    @foreach (var history in Model)
-                    {
-                        <div class="col-md-3 col-sm-4 col-xs-6 mb-4">
-                            <div class="card h-100 shadow-sm">
-                                <a href="/Watch?slug=@history.MovieSlug&episode=@history.EpisodeSlug">
-                                    <img src="@history.PosterUrl" class="card-img-top" alt="@history.MovieTitle" style="height: 250px; object-fit: cover;">
-                                    
-                                    <!-- Progress bar -->
-                                    <div class="progress" style="height: 5px; border-radius: 0;">
-                                        <div class="progress-bar bg-danger" role="progressbar" 
-                                             style="width: @history.ProgressPercent%" 
-                                             aria-valuenow="@history.ProgressPercent" 
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
+                <div class="history-grid halim_box">
+                    <div class="history-grid">
+                        @foreach (var history in Model)
+                        {
+                            <div class="history-card" data-history-id="@history.Id">
+                                <a href="/Watch?slug=@history.MovieSlug&episode=@history.EpisodeSlug" title="@history.MovieTitle" class="history-content">
+                                    <div class="history-thumbnail">
+                                        <img src="@history.PosterUrl" alt="@history.MovieTitle" loading="lazy" />
+                                    </div>
+                                    <div class="history-info">
+                                        <div class="history-info-title">@System.Net.WebUtility.HtmlDecode(history.MovieTitle)</div>
+                                        <div class="history-info-episode"><i class="fas fa-play"></i> Đã xem @System.Net.WebUtility.HtmlDecode(history.EpisodeName)</div>
+                                        <div class="history-info-time"><i class="fas fa-clock"></i>
+                                            @if ((DateTime.UtcNow - history.LastWatchedAt).TotalMinutes < 60)
+                                            {
+                                                <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalMinutes) phút trước</text>
+                                            }
+                                            else if ((DateTime.UtcNow - history.LastWatchedAt).TotalHours < 24)
+                                            {
+                                                <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalHours) giờ trước</text>
+                                            }
+                                            else
+                                            {
+                                                <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalDays) ngày trước</text>
+                                            }
                                         </div>
                                     </div>
-                                </a>
-                                
-                                <div class="card-body">
-                                    <h5 class="card-title text-truncate" title="@history.MovieTitle">
-                                        <a href="/Watch?slug=@history.MovieSlug&episode=@history.EpisodeSlug" class="text-decoration-none text-dark">
-                                            @history.MovieTitle
-                                        </a>
-                                    </h5>
-                                    
-                                    <p class="card-text small text-muted mb-2">
-                                        <i class="fas fa-film"></i> @history.EpisodeName
-                                    </p>
-                                    
-                                    <p class="card-text small mb-2">
-                                        <span class="badge bg-info text-dark">
-                                            Đã xem: @history.ProgressPercent%
-                                        </span>
-                                        @if (history.IsCompleted)
-                                        {
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Hoàn thành
-                                            </span>
-                                        }
-                                    </p>
-                                    
-                                    <p class="card-text small text-muted">
-                                        <i class="far fa-clock"></i> 
-                                        @if ((DateTime.UtcNow - history.LastWatchedAt).TotalMinutes < 60)
-                                        {
-                                            <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalMinutes) phút trước</text>
-                                        }
-                                        else if ((DateTime.UtcNow - history.LastWatchedAt).TotalHours < 24)
-                                        {
-                                            <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalHours) giờ trước</text>
-                                        }
-                                        else
-                                        {
-                                            <text>@((int)(DateTime.UtcNow - history.LastWatchedAt).TotalDays) ngày trước</text>
-                                        }
-                                    </p>
-                                    
-                                    <a href="/Watch?slug=@history.MovieSlug&episode=@history.EpisodeSlug" 
-                                       class="btn btn-sm btn-primary w-100">
-                                        <i class="fas fa-play"></i> Tiếp tục xem
-                                    </a>
-                                </div>
+</a>
+                                <span class="delete-history" data-history-id="@history.Id" title="Xóa lịch sử"><i class="fas fa-times"></i></span>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             }
             else
@@ -111,4 +82,97 @@
     .card-title a:hover {
         color: #007bff !important;
     }
+    
+    /* Style cho search input trong history */
+    .history-search-input {
+        background-color: #2a2a2a !important;
+        border: 2px solid #3a3a3a !important;
+        color: #fff !important;
+        border-radius: 25px !important;
+        padding: 12px 25px !important;
+        font-size: 15px !important;
+    }
+    
+    .history-search-input:focus {
+        outline: none !important;
+        border-color: #ff6b35 !important;
+        background-color: #333 !important;
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.2) !important;
+    }
+    
+    .history-search-input::placeholder {
+        color: #888 !important;
+    }
 </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Tìm kiếm real-time - gõ là lọc luôn, không cần Enter
+            $('#history-search').on('input', function(e) {
+                var searchText = $(this).val().toLowerCase().trim();
+                var hasResults = false;
+                
+                $('.history-card').each(function() {
+                    var movieTitle = $(this).find('.history-info-title').text().toLowerCase();
+                    
+                    // CHỈ tìm trong tên phim
+                    if (searchText === '' || movieTitle.includes(searchText)) {
+                        $(this).show();
+                        hasResults = true;
+                    } else {
+                        $(this).hide();
+                    }
+                });
+                
+                // Hiển thị thông báo nếu không có kết quả
+                if (!hasResults && searchText !== '') {
+                    if ($('#no-results').length === 0) {
+                        $('.history-grid').after('<div id="no-results" class="text-center py-5"><i class="fas fa-search fa-3x text-muted mb-3"></i><h5 class="text-muted">Không tìm thấy phim nào</h5></div>');
+                    }
+                    $('#no-results').show();
+                    $('.history-grid').hide();
+                } else {
+                    $('#no-results').hide();
+                    $('.history-grid').show();
+                }
+            });
+
+            // Xóa lịch sử
+            $('.delete-history').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (!confirm('Bạn có chắc muốn xóa lịch sử xem này?')) {
+                    return;
+                }
+                
+                var historyId = $(this).data('history-id');
+                var $card = $(this).closest('.history-card');
+                
+                $.ajax({
+                    url: '/Watch/DeleteHistory',
+                    type: 'POST',
+                    data: { id: historyId },
+                    success: function(response) {
+                        if (response.success) {
+                            $card.fadeOut(300, function() {
+                                $(this).remove();
+                                
+                                // Kiểm tra nếu không còn phim nào
+                                if ($('.history-card').length === 0) {
+                                    location.reload();
+                                }
+                            });
+                        } else {
+                            alert('Có lỗi xảy ra khi xóa lịch sử');
+                        }
+                    },
+                    error: function() {
+                        alert('Có lỗi xảy ra khi xóa lịch sử');
+                    }
+                });
+            });
+        });
+    </script>
+}
