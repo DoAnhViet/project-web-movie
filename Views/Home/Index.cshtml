@@ -1,9 +1,32 @@
-@model WebMovie.Models.MovieListResponse
+@model WebMovie.Models.HomeIndexViewModel
 @{
     ViewData["Title"] = "Trang chủ";
 }
 
+<style>
+    .halim-trending-poster-placeholder {
+        width: 100%;
+        padding-top: 150%;
+        background: #1f2937;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+    }
+    .halim-trending-meta {
+        margin: 4px 0 0;
+        font-size: 0.85rem;
+        color: #9ca3af;
+    }
+</style>
+
 <main id="main-contents" class="col-xs-12 col-sm-12 col-md-8">
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-warning">@ViewBag.ErrorMessage</div>
+    }
+
     <!-- Trending Slider -->
     <div class="halim-trending-slider">
         <div class="section-bar clearfix">
@@ -11,27 +34,27 @@
         </div>
         <div class="halim-trending-container">
            <div class="halim-trending-track" style="transform: translateZ(0px); backface-visibility: hidden; scroll-behavior: smooth;">
-                @{
-                    var topMovies = new List<WebMovie.Models.MovieItem>();
-                    if (Model?.Items != null)
-                    {
-                        // Sort by year to get latest movies
-                        topMovies = Model.Items
-                            .OrderByDescending(m => m.Year ?? 0)
-                            .Take(10)
-                            .ToList();
-                    }
-                }
-
-                @if (topMovies != null && topMovies.Any())
+                @if (Model?.TopWatched != null && Model.TopWatched.Any())
                 {
-                    @for (int i = 0; i < topMovies.Count; i++)
+                    @for (int i = 0; i < Model.TopWatched.Count; i++)
                     {
-                        var movie = topMovies[i];
+                        var movie = Model.TopWatched[i];
+                        var displayTitle = System.Net.WebUtility.HtmlDecode(movie.Title ?? movie.Slug);
+                        var displayOrigin = System.Net.WebUtility.HtmlDecode(movie.OriginTitle ?? string.Empty);
                         <div class="halim-trending-card">
                             <a href="/Movie/Detail?slug=@movie.Slug" class="halim-trending-link">
                                 <div class="halim-trending-poster-container">
-                                    <img src="@movie.PosterUrl" alt="@movie.Name" class="halim-trending-poster-image" loading="lazy" />
+                                    @if (!string.IsNullOrEmpty(movie.PosterUrl))
+                                    {
+                                        <img src="@movie.PosterUrl" alt="@displayTitle" class="halim-trending-poster-image" loading="lazy" />
+                                    }
+                                    else
+                                    {
+                                        <div class="halim-trending-poster-placeholder">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    }
+
                                     @if (!string.IsNullOrEmpty(movie.Quality))
                                     {
                                         <div class="halim-trending-badge">@movie.Quality</div>
@@ -40,11 +63,12 @@
                                 <div class="halim-trending-info" style="display:flex;align-items:center;">
                                     <div class="halim-trending-number">@((i + 1))</div>
                                     <div class="halim-trending-details">
-                                        <h3 class="halim-trending-title-text">@movie.Name</h3>
-                                        @if (!string.IsNullOrEmpty(movie.OriginName))
+                                        <h3 class="halim-trending-title-text">@displayTitle</h3>
+                                        @if (!string.IsNullOrEmpty(displayOrigin))
                                         {
-                                            <p class="halim-trending-original-title">@movie.OriginName</p>
+                                            <p class="halim-trending-original-title">@displayOrigin</p>
                                         }
+                                        
                                     </div>
                                 </div>
                             </a>
@@ -62,10 +86,10 @@
         </div>
         
         <div class="row">
-            @if (Model?.Items != null && Model.Items.Any())
+            @if (Model?.LatestMovies?.Items != null && Model.LatestMovies.Items.Any())
             {
                 @* YÊU CẦU ĐỒ ÁN: Sử dụng View Component để hiển thị phim *@
-                @foreach (var movie in Model.Items)
+                @foreach (var movie in Model.LatestMovies.Items)
                 {
                     @await Component.InvokeAsync("MovieCard", movie)
                 }
@@ -80,32 +104,32 @@
         </div>
         
         <!-- Pagination -->
-        @if (Model?.Pagination != null && Model.Pagination.TotalPages > 1)
+        @if (Model?.LatestMovies?.Pagination != null && Model.LatestMovies.Pagination.TotalPages > 1)
         {
             <div class="pagination-container text-center mt-4">
                 <ul class="pagination justify-content-center">
-                    @if (Model.Pagination.CurrentPage > 1)
+                    @if (Model.LatestMovies.Pagination.CurrentPage > 1)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="?page=@(Model.Pagination.CurrentPage - 1)">
+                            <a class="page-link" href="?page=@(Model.LatestMovies.Pagination.CurrentPage - 1)">
                                 <i class="fas fa-chevron-left"></i> Trước
                             </a>
                         </li>
                     }
                     
-                    @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
-                        i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                    @for (int i = Math.Max(1, Model.LatestMovies.Pagination.CurrentPage - 2); 
+                        i <= Math.Min(Model.LatestMovies.Pagination.TotalPages, Model.LatestMovies.Pagination.CurrentPage + 2); 
                         i++)
                     {
-                        <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                        <li class="page-item @(i == Model.LatestMovies.Pagination.CurrentPage ? "active" : "")">
                             <a class="page-link" href="?page=@i">@i</a>
                         </li>
                     }
                     
-                    @if (Model.Pagination.CurrentPage < Model.Pagination.TotalPages)
+                    @if (Model.LatestMovies.Pagination.CurrentPage < Model.LatestMovies.Pagination.TotalPages)
                     {
                         <li class="page-item">
-                            <a class="page-link" href="?page=@(Model.Pagination.CurrentPage + 1)">
+                            <a class="page-link" href="?page=@(Model.LatestMovies.Pagination.CurrentPage + 1)">
                                 Sau <i class="fas fa-chevron-right"></i>
                             </a>
                         </li>

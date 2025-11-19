@@ -336,7 +336,13 @@
         var posterUrl = '@(Model?.Movie?.PosterUrl ?? "")';
         var currentEpisodeName = '@(Model?.Episodes?.FirstOrDefault()?.ServerDataList?.FirstOrDefault()?.Name ?? "Tập 1")';
         var saveProgressInterval;
+        var watchTime = 0;
+        var antiForgeryToken = '';
         var isAuthenticated = @(User.Identity?.IsAuthenticated == true ? "true" : "false");
+
+        if (!currentEpisodeSlug) {
+            currentEpisodeSlug = movieSlug || 'default';
+        }
 
         function changeEpisode(element) {
 var embedUrl = element.getAttribute('data-embed');
@@ -345,18 +351,12 @@ var embedUrl = element.getAttribute('data-embed');
             
             if (embedUrl) {
                 document.getElementById('iframe-player').src = embedUrl;
-                
-                // Remove active class from all episodes
-                document.querySelectorAll('.episode-item').forEach(function(item) {
-                    item.classList.remove('active');
-                });
-                
-                // Add active class to clicked episode
-                element.classList.add('active');
-                
-                // Update current episode info
-                currentEpisodeSlug = episodeSlug;
-                currentEpisodeName = episodeName;
+
+                // Update current episode info & highlight
+                currentEpisodeSlug = episodeSlug || currentEpisodeSlug || (movieSlug || 'default');
+                currentEpisodeName = episodeName || currentEpisodeName;
+                setActiveEpisode(currentEpisodeSlug);
+                watchTime = 0;
                 
                 // Reset progress tracking for new episode
                 if (isAuthenticated) {
@@ -372,14 +372,36 @@ var embedUrl = element.getAttribute('data-embed');
             }
         }
 
+        function setActiveEpisode(episodeSlug) {
+            if (!episodeSlug) return;
+
+            var normalized = episodeSlug.toString();
+            document.querySelectorAll('.episode-item').forEach(function(item) {
+                var itemSlug = item.getAttribute('data-slug') || '';
+                if (itemSlug === normalized) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
         // Lấy tiến trình xem đã lưu
         function loadWatchProgress() {
-            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
-            
-            fetch(`/Watch/GetWatchProgress?movieSlug=${movieSlug}&episodeSlug=${currentEpisodeSlug}`)
+            if (!isAuthenticated || !movieSlug) return;
+
+            fetch(`/Watch/GetWatchProgress?movieSlug=${encodeURIComponent(movieSlug)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.currentTime > 0) {
+                        if (data.episodeSlug) {
+                            currentEpisodeSlug = data.episodeSlug;
+                            setActiveEpisode(currentEpisodeSlug);
+                        }
+                        if (data.episodeName) {
+                            currentEpisodeName = data.episodeName;
+                        }
+                        watchTime = data.currentTime;
                         console.log(`Đã tìm thấy tiến trình: ${data.currentTime}s (${data.progressPercent}%)`);
                         // Hiển thị thông báo hoặc tự động seek đến vị trí đã xem
                         showResumeNotification(data.currentTime);
@@ -418,14 +440,17 @@ var embedUrl = element.getAttribute('data-embed');
 
         // Lưu tiến trình xem
         function saveWatchProgress(currentTime, totalTime) {
-            if (!isAuthenticated || !movieSlug || !currentEpisodeSlug) return;
-            
+            if (!isAuthenticated || !movieSlug) return;
+
+            var effectiveEpisodeSlug = currentEpisodeSlug || movieSlug || 'default';
+            var effectiveEpisodeName = currentEpisodeName || 'Tập 1';
+
             var data = {
                 movieSlug: movieSlug,
                 movieTitle: movieTitle,
                 posterUrl: posterUrl,
-                episodeName: currentEpisodeName,
-                episodeSlug: currentEpisodeSlug,
+                episodeName: effectiveEpisodeName,
+                episodeSlug: effectiveEpisodeSlug,
                 currentTime: Math.floor(currentTime),
                 totalTime: Math.floor(totalTime)
             };
@@ -450,30 +475,43 @@ var embedUrl = element.getAttribute('data-embed');
         // Lắng nghe sự kiện từ iframe (nếu player hỗ trợ)
         // Vì iframe embed nên không thể trực tiếp track, nhưng có thể save định kỳ
         if (isAuthenticated) {
-            // Load progress khi vào trang
+            @if (ViewBag.WatchHistory != null)
+            {
+                <text>watchTime = @ViewBag.WatchHistory.CurrentTime;</text>
+                <text>currentEpisodeSlug = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WatchHistory?.EpisodeSlug ?? string.Empty)) || currentEpisodeSlug;</text>
+                <text>currentEpisodeName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.WatchHistory?.EpisodeName ?? string.Empty)) || currentEpisodeName;</text>
+            }
+
             loadWatchProgress();
-            
-            // Save initial history when opening the page (user started watching)
+
+            // Tạo bản ghi ban đầu để đảm bảo lịch sử tồn tại
             try {
-                var initialEstimatedTotal = (typeof watchTime === 'number' ? watchTime + 600 : 0);
-                saveWatchProgress(watchTime || 0, initialEstimatedTotal);
+                var baselineTotal = watchTime > 0 ? watchTime + 600 : 0;
+                saveWatchProgress(watchTime || 0, baselineTotal);
             } catch (e) {
                 console.error('Error saving initial page watch progress:', e);
             }
 
-            // Lưu tiến trình mỗi 30 giây (giả định user đang xem)
-            var watchTime = 0;
-            @if (ViewBag.WatchHistory != null)
-            {
-                <text>watchTime = @ViewBag.WatchHistory.CurrentTime;</text>
-            }
-            
             saveProgressInterval = setInterval(function() {
-                watchTime += 30; // Tăng 30 giây
-                var estimatedTotal = watchTime + 600; // Giả định còn 10 phút
+                watchTime += 30; // Tăng 30 giây giả định
+                var estimatedTotal = watchTime + 600; // Ước lượng tổng thời gian
                 saveWatchProgress(watchTime, estimatedTotal);
             }, 30000); // Mỗi 30 giây
         }
+
+        window.addEventListener('beforeunload', function() {
+            if (saveProgressInterval) {
+                clearInterval(saveProgressInterval);
+            }
+
+            if (isAuthenticated && movieSlug) {
+                try {
+                    saveWatchProgress(watchTime, watchTime + 600);
+                } catch (e) {
+                    console.debug('Skip save on unload:', e);
+                }
+            }
+        });
 
         // ========== COMMENT FUNCTIONS ==========
         
@@ -514,8 +552,8 @@ var embedUrl = element.getAttribute('data-embed');
             comments.forEach(comment => {
                 var commentDate = new Date(comment.createdAt);
                 var timeAgo = getTimeAgo(commentDate);
-                var canDelete = ${(User.Identity?.IsAuthenticated == true ? "true" : "false")} && 
-                                (comment.userId === '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value');
+                var canDelete = Boolean(comment.canDelete);
+                var displayName = comment.userDisplayName ? escapeHtml(comment.userDisplayName) : 'Người dùng';
 
                 html += `
                     <div class="comment-item" data-comment-id="${comment.id}">
@@ -523,15 +561,15 @@ var embedUrl = element.getAttribute('data-embed');
                             <div class="d-flex align-items-center">
                                 <i class="fas fa-user-circle fa-2x text-primary-custom me-2"></i>
                                 <div>
-                                    <div class="comment-author">${escapeHtml(comment.userName)}</div>
+                                    <div class="comment-author">${displayName}</div>
                                     <div class="comment-date">${timeAgo}</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="comment-content">${escapeHtml(comment.content)}</div>
+                        <div class="comment-content">${escapeHtml(comment.content || '')}</div>
                         ${canDelete ? `
                             <div class="comment-actions">
-                                <button class="btn btn-sm btn-delete-comment" onclick="deleteComment(${comment.id})">
+                                <button class="btn btn-sm btn-delete-comment" data-comment-id="${comment.id}">
                                     <i class="fas fa-trash me-1"></i>Xóa
                                 </button>
                             </div>
@@ -541,6 +579,14 @@ var embedUrl = element.getAttribute('data-embed');
             });
 
             container.innerHTML = html;
+
+            // Attach delete handlers after rendering
+            container.querySelectorAll('.btn-delete-comment').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    var commentId = parseInt(this.getAttribute('data-comment-id'), 10);
+                    deleteComment(commentId);
+                });
+            });
         }
 
         // Submit comment - Setup event listeners when DOM is ready
@@ -548,6 +594,11 @@ var embedUrl = element.getAttribute('data-embed');
             // Character count
             var textarea = document.getElementById('comment-content');
             var charCount = document.getElementById('char-count');
+            antiForgeryToken = document.querySelector('#comment-form input[name="__RequestVerificationToken"]')?.value
+                || document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                || '';
+
+            setActiveEpisode(currentEpisodeSlug);
             
             if (textarea) {
                 textarea.addEventListener('input', function() {
@@ -584,14 +635,14 @@ var embedUrl = element.getAttribute('data-embed');
                             loadComments(); // Reload comments
                             
                             // Show success message
-                            var alert = document.createElement('div');
-                            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
-                            alert.innerHTML = `
+                            var alertBox = document.createElement('div');
+                            alertBox.className = 'alert alert-success alert-dismissible fade show mt-2';
+                            alertBox.innerHTML = `
                                 <i class="fas fa-check-circle me-2"></i>${data.message}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             `;
-                            commentForm.parentElement.insertBefore(alert, commentForm.nextSibling);
-                            setTimeout(() => alert.remove(), 3000);
+                            commentForm.parentElement.insertBefore(alertBox, commentForm.nextSibling);
+                            setTimeout(() => alertBox.remove(), 3000);
                         } else {
                             alert(data.message || 'Có lỗi xảy ra');
                         }
@@ -614,12 +665,19 @@ var embedUrl = element.getAttribute('data-embed');
                 return;
             }
 
+            if (!antiForgeryToken) {
+                console.warn('Anti-forgery token is missing; abort delete');
+                return;
+            }
+
+            var body = `commentId=${encodeURIComponent(commentId)}&__RequestVerificationToken=${encodeURIComponent(antiForgeryToken)}`;
+
             fetch('/Comment/Delete', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                 },
-                body: `id=${commentId}`
+                body: body
             })
             .then(response => response.json())
             .then(data => {

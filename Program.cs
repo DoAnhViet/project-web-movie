@@ -46,6 +46,8 @@ builder.Services.AddScoped<FavoriteService>();
 // Đăng ký CommentService
 builder.Services.AddScoped<CommentService>();
 
+builder.Services.AddScoped<WatchAnalyticsService>();
+
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Cấu hình password

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using WebMovie.Models;
 using WebMovie.Services;
 
@@ -13,12 +14,18 @@ namespace WebMovie.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _db;
         private readonly MovieApiService _movieApiService;
+        private readonly WatchAnalyticsService _watchAnalyticsService;
 
-        public AdminController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MovieApiService movieApiService)
+        public AdminController(
+            UserManager<ApplicationUser> userManager,
+            ApplicationDbContext db,
+            MovieApiService movieApiService,
+            WatchAnalyticsService watchAnalyticsService)
         {
             _userManager = userManager;
             _db = db;
             _movieApiService = movieApiService;
+            _watchAnalyticsService = watchAnalyticsService;
         }
 
         public async Task<IActionResult> Index()
@@ -34,7 +41,7 @@ namespace WebMovie.Controllers
             var totalUsers = await _userManager.Users.CountAsync();
             var totalWatch = await _db.WatchHistories.CountAsync();
             var viewsToday = await _db.WatchHistories.CountAsync(w => w.LastWatchedAt >= DateTime.UtcNow.Date);
-            var commentsCount = await _db.Comments.CountAsync();
+            var commentsCount = await _db.MovieComments.CountAsync();
 
             // try to get total movies from API (best-effort)
             int totalMoviesFromApi = 0;
@@ -55,32 +62,15 @@ namespace WebMovie.Controllers
                 totalMoviesFromApi = 0;
             }
 
-            // top movies by watch count
-            var top = await _db.WatchHistories
-                .GroupBy(w => w.MovieSlug)
-                .Select(g => new { MovieSlug = g.Key, Count = g.Count(), Title = g.Max(x => x.MovieTitle) })
-                .OrderByDescending(x => x.Count)
-                .Take(5)
-                .ToListAsync();
-
-            var topMovies = new List<TopMovieViewModel>();
-            foreach (var t in top)
-            {
-                var title = t.Title;
-                if (string.IsNullOrEmpty(title))
+            var analyticsTopMovies = await _watchAnalyticsService.GetTopWatchedMoviesAsync(10);
+            var topMovies = analyticsTopMovies
+                .Select(movie => new TopMovieViewModel
                 {
-                    try
-                    {
-                        var detail = await _movieApiService.GetMovieDetailAsync(t.MovieSlug);
-                        title = detail?.Movie?.Name ?? t.MovieSlug;
-                    }
-                    catch
-                    {
-                        title = t.MovieSlug;
-                    }
-                }
-                topMovies.Add(new TopMovieViewModel { Slug = t.MovieSlug, Title = title, Views = t.Count });
-            }
+                    Slug = movie.Slug,
+                    Title = string.IsNullOrEmpty(movie.Title) ? movie.Slug : movie.Title,
+                    Views = movie.WatchCount
+                })
+                .ToList();
 
             var vm = new AdminDashboardViewModel
             {
@@ -98,68 +88,7 @@ namespace WebMovie.Controllers
         // Dashboard overview
         public async Task<IActionResult> Dashboard()
         {
-            // totals
-            var totalUsers = await _userManager.Users.CountAsync();
-            var totalWatch = await _db.WatchHistories.CountAsync();
-            var viewsToday = await _db.WatchHistories.CountAsync(w => w.LastWatchedAt >= DateTime.UtcNow.Date);
-            var commentsCount = await _db.Comments.CountAsync();
-
-            // try to get total movies from API (best-effort)
-            int totalMoviesFromApi = 0;
-            try
-            {
-                var list = await _movieApiService.GetNewMoviesAsync(1);
-                if (list?.Pagination != null)
-                {
-                    totalMoviesFromApi = list.Pagination.TotalItems;
-                }
-                else
-                {
-                    totalMoviesFromApi = list?.Items?.Count ?? 0;
-                }
-            }
-            catch
-            {
-                totalMoviesFromApi = 0;
-            }
-
-            // top movies by watch count
-            var top = await _db.WatchHistories
-                .GroupBy(w => w.MovieSlug)
-                .Select(g => new { MovieSlug = g.Key, Count = g.Count(), Title = g.Max(x => x.MovieTitle) })
-                .OrderByDescending(x => x.Count)
-                .Take(5)
-                .ToListAsync();
-
-            var topMovies = new List<TopMovieViewModel>();
-            foreach (var t in top)
-            {
-                var title = t.Title;
-                if (string.IsNullOrEmpty(title))
-                {
-                    try
-                    {
-                        var detail = await _movieApiService.GetMovieDetailAsync(t.MovieSlug);
-                        title = detail?.Movie?.Name ?? t.MovieSlug;
-                    }
-                    catch
-                    {
-                        title = t.MovieSlug;
-                    }
-                }
-                topMovies.Add(new TopMovieViewModel { Slug = t.MovieSlug, Title = title, Views = t.Count });
-            }
-
-            var vm = new AdminDashboardViewModel
-            {
-                TotalUsers = totalUsers,
-                TotalWatchHistory = totalWatch,
-                ViewsToday = viewsToday,
-                CommentsCount = commentsCount,
-                TotalMoviesFromApi = totalMoviesFromApi,
-                TopMovies = topMovies
-            };
-
+            var vm = await BuildDashboardVmAsync();
             return View(vm);
         }
 

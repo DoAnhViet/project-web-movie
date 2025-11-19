@@ -47,7 +47,7 @@ namespace WebMovie.Controllers
         // Danh sách phim mới cập nhật
         public async Task<IActionResult> NewMovies(int page = 1)
         {
-            var moviesResponse = await _movieApiService.GetNewMoviesAsync(page);
+            var moviesResponse = await _movieApiService.GetNewMoviesAsync(page, 12);
             if (moviesResponse == null)
             {
                 return View("Error");

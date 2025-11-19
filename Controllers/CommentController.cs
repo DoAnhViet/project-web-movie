@@ -123,8 +123,24 @@ namespace WebMovie.Controllers
                 return Json(new { success = false, message = "Thiếu thông tin phim" });
             }
 
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var isAdmin = User.IsInRole("Admin");
+
             var comments = await _commentService.GetCommentsByMovieAsync(movieSlug);
-            return Json(new { success = true, comments = comments });
+
+            var payload = comments.Select(c => new
+            {
+                id = c.Id,
+                content = c.Content,
+                createdAt = c.CreatedAt,
+                updatedAt = c.UpdatedAt,
+                userId = c.UserId,
+                userDisplayName = c.User?.FullName ?? c.User?.Email ?? "Người dùng",
+                isOwner = currentUserId != null && c.UserId == currentUserId,
+                canDelete = (currentUserId != null && c.UserId == currentUserId) || isAdmin
+            });
+
+            return Json(new { success = true, comments = payload });
         }
     }
 }

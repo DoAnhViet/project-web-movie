@@ -18,11 +18,17 @@ namespace WebMovie.Services
         }
 
         // Lấy danh sách phim mới cập nhật
-        public async Task<MovieListResponse?> GetNewMoviesAsync(int page = 1)
+        public async Task<MovieListResponse?> GetNewMoviesAsync(int page = 1, int limit = 12)
         {
             try
             {
-                var response = await _httpClient.GetAsync($"/danh-sach/phim-moi-cap-nhat?page={page}");
+                var query = $"page={page}";
+                if (limit > 0)
+                {
+                    query += $"&limit={limit}";
+                }
+
+                var response = await _httpClient.GetAsync($"/danh-sach/phim-moi-cap-nhat?{query}");
                 response.EnsureSuccessStatusCode();
                 
                 var content = await response.Content.ReadAsStringAsync();
