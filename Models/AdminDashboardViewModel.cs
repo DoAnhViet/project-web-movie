@@ -16,6 +16,7 @@ namespace WebMovie.Models
         public int ViewsToday { get; set; }
         public int CommentsCount { get; set; }
         public int TotalMoviesFromApi { get; set; }
+        public int HiddenMoviesCount { get; set; }
         public List<TopMovieViewModel> TopMovies { get; set; } = new List<TopMovieViewModel>();
     }
 }

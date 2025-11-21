@@ -134,7 +134,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Tạm thời tắt HTTPS redirect trong Development để dễ truy cập
+if (app.Environment.IsDevelopment())
+{
+    // app.UseHttpsRedirection(); // Comment để có thể truy cập HTTP trực tiếp
+}
+else
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
 
 app.UseRouting();

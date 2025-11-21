@@ -43,11 +43,11 @@ namespace WebMovie.Controllers
             var viewsToday = await _db.WatchHistories.CountAsync(w => w.LastWatchedAt >= DateTime.UtcNow.Date);
             var commentsCount = await _db.MovieComments.CountAsync();
 
-            // try to get total movies from API (best-effort)
+            // try to get total movies from API (best-effort) - dùng method cho admin
             int totalMoviesFromApi = 0;
             try
             {
-                var list = await _movieApiService.GetNewMoviesAsync(1);
+                var list = await _movieApiService.GetNewMoviesForAdminAsync(1);
                 if (list?.Pagination != null)
                 {
                     totalMoviesFromApi = list.Pagination.TotalItems;
@@ -72,6 +72,9 @@ namespace WebMovie.Controllers
                 })
                 .ToList();
 
+            // Đếm số phim đã bị ẩn
+            var hiddenMoviesCount = await _db.CustomMovieTitles.CountAsync(c => c.IsHidden);
+
             var vm = new AdminDashboardViewModel
             {
                 TotalUsers = totalUsers,
@@ -79,6 +82,7 @@ namespace WebMovie.Controllers
                 ViewsToday = viewsToday,
                 CommentsCount = commentsCount,
                 TotalMoviesFromApi = totalMoviesFromApi,
+                HiddenMoviesCount = hiddenMoviesCount,
                 TopMovies = topMovies
             };
 
@@ -126,8 +130,22 @@ namespace WebMovie.Controllers
         // Manage movies (fetch from API and allow editing title)
         public async Task<IActionResult> ManageMovies(int page = 1)
         {
-            var response = await _movieApiService.GetNewMoviesAsync(page);
+            // Dùng method lấy tất cả phim cho admin (không filter phim đã ẩn)
+            // Tăng limit lên 20 để hiển thị nhiều phim hơn
+            var response = await _movieApiService.GetAllMoviesForAdminAsync(page, 20);
             var items = response?.Items ?? new List<WebMovie.Models.MovieItem>();
+            
+            // Lấy danh sách phim đã bị ẩn
+            var hiddenMovieSlugs = await _db.CustomMovieTitles
+                .Where(c => c.IsHidden)
+                .Select(c => c.MovieSlug)
+                .ToListAsync();
+            
+            ViewBag.HiddenMovieSlugs = hiddenMovieSlugs;
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = response?.Pagination?.TotalPages ?? 1;
+            ViewBag.TotalItems = response?.Pagination?.TotalItems ?? 0;
+            
             return View(items);
         }
 
@@ -216,6 +234,68 @@ namespace WebMovie.Controllers
             await _db.SaveChangesAsync();
             TempData["SuccessMessage"] = "Tiêu đề đã được xóa.";
             return RedirectToAction("Titles");
+        }
+
+        // Toggle ẩn/hiện phim
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleHideMovie(string slug)
+        {
+            if (string.IsNullOrEmpty(slug))
+            {
+                return Json(new { success = false, message = "Slug phim không hợp lệ." });
+            }
+
+            var customTitle = await _db.CustomMovieTitles.FirstOrDefaultAsync(c => c.MovieSlug == slug);
+            
+            if (customTitle == null)
+            {
+                // Nếu chưa có record, tạo mới với IsHidden = true
+                try
+                {
+                    var detail = await _movieApiService.GetMovieDetailAsync(slug);
+                    customTitle = new CustomMovieTitle
+                    {
+                        MovieSlug = slug,
+                        CustomTitle = detail?.Movie?.Name ?? slug,
+                        OriginalTitle = detail?.Movie?.Name ?? string.Empty,
+                        IsHidden = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    };
+                    _db.CustomMovieTitles.Add(customTitle);
+                }
+                catch
+                {
+                    // Nếu không lấy được từ API, tạo với thông tin tối thiểu
+                    customTitle = new CustomMovieTitle
+                    {
+                        MovieSlug = slug,
+                        CustomTitle = slug,
+                        OriginalTitle = string.Empty,
+                        IsHidden = true,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    };
+                    _db.CustomMovieTitles.Add(customTitle);
+                }
+            }
+            else
+            {
+                // Toggle trạng thái ẩn/hiện
+                customTitle.IsHidden = !customTitle.IsHidden;
+                customTitle.UpdatedAt = DateTime.UtcNow;
+                customTitle.UpdatedBy = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            }
+
+            await _db.SaveChangesAsync();
+            
+            return Json(new 
+            { 
+                success = true, 
+                isHidden = customTitle.IsHidden,
+                message = customTitle.IsHidden ? "Đã ẩn phim khỏi website." : "Đã hiển thị phim trên website." 
+            });
         }
 
         [HttpPost]
