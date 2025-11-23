@@ -17,7 +17,7 @@ namespace WebMovie.Services
             _httpClient.BaseAddress = new Uri(BaseUrl);
         }
 
-        // Lấy danh sách phim mới cập nhật (cho user thường - tự động filter phim đã ẩn)
+        // Lấy danh sách phim mới cập nhật
         public async Task<MovieListResponse?> GetNewMoviesAsync(int page = 1, int limit = 12)
         {
             try
@@ -38,84 +38,12 @@ namespace WebMovie.Services
                 });
                 
                 ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching movies: {ex.Message}");
                 return null;
-            }
-        }
-
-        // Lấy danh sách phim mới cập nhật (cho admin - không filter phim đã ẩn)
-        public async Task<MovieListResponse?> GetNewMoviesForAdminAsync(int page = 1, int limit = 12)
-        {
-            try
-            {
-                var query = $"page={page}";
-                if (limit > 0)
-                {
-                    query += $"&limit={limit}";
-                }
-
-                var response = await _httpClient.GetAsync($"/danh-sach/phim-moi-cap-nhat?{query}");
-                response.EnsureSuccessStatusCode();
-                
-                var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                
-                ApplyCustomTitles(result);
-                // Không filter phim đã ẩn cho admin
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching movies: {ex.Message}");
-                return null;
-            }
-        }
-
-        // Lấy tất cả phim (cho admin - không filter phim đã ẩn)
-        public async Task<MovieListResponse?> GetAllMoviesForAdminAsync(int page = 1, int limit = 20)
-        {
-            try
-            {
-                var query = $"page={page}";
-                if (limit > 0)
-                {
-                    query += $"&limit={limit}";
-                }
-
-                // Thử endpoint /danh-sach/phim trước, nếu không được thì dùng /danh-sach
-                var response = await _httpClient.GetAsync($"/danh-sach/phim?{query}");
-                
-                // Nếu endpoint /danh-sach/phim không tồn tại, thử /danh-sach
-                if (!response.IsSuccessStatusCode)
-                {
-                    response = await _httpClient.GetAsync($"/danh-sach?{query}");
-                }
-                
-                response.EnsureSuccessStatusCode();
-                
-                var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                
-                ApplyCustomTitles(result);
-                // Không filter phim đã ẩn cho admin
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching all movies: {ex.Message}");
-                // Fallback về phim mới cập nhật nếu endpoint không tồn tại
-                return await GetNewMoviesForAdminAsync(page, limit);
             }
         }
 
@@ -134,11 +62,6 @@ namespace WebMovie.Services
                 });
                 
                 ApplyCustomTitles(result);
-                // Check if movie is hidden - return null if hidden
-                if (IsMovieHidden(slug))
-                {
-                    return null;
-                }
                 return result;
             }
             catch (Exception ex)
@@ -179,17 +102,13 @@ namespace WebMovie.Services
                         item.ThumbUrl = cdn + "/" + item.ThumbUrl.TrimStart('/');
                 }
 
-                var result = new MovieListResponse
+                return new MovieListResponse
                 {
                     Status = true,
                     Message = searchResult.Message,
                     Items = items,
                     Pagination = searchResult.Data?.Pagination ?? searchResult.Pagination
                 };
-                
-                ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
-                return result;
             }
             catch (Exception ex)
             {
@@ -212,8 +131,6 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
-                ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
@@ -258,8 +175,6 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
-                ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
@@ -304,8 +219,6 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
-                ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
@@ -316,30 +229,77 @@ namespace WebMovie.Services
         }
 
         // Lấy phim theo quốc gia
-        public async Task<MovieListResponse?> GetMoviesByCountryAsync(string countrySlug, int page = 1)
+       public async Task<MovieListResponse?> GetMoviesByCountryAsync(string countrySlug, int page = 1)
         {
+            if (string.IsNullOrEmpty(countrySlug))
+                return new MovieListResponse { Items = new List<MovieItem>() };
+
             try
             {
-                var response = await _httpClient.GetAsync($"/v1/api/quoc-gia/{countrySlug}?page={page}");
-                response.EnsureSuccessStatusCode();
-                
+                var url = $"/v1/api/quoc-gia/{countrySlug}?page={page}&limit=20&sort_field=_id&sort_type=asc";
+                var response = await _httpClient.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"API error {response.StatusCode} for country: {countrySlug}");
+                    return new MovieListResponse { Items = new List<MovieItem>() };
+                }
+
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+                if (string.IsNullOrWhiteSpace(content))
+                    return new MovieListResponse { Items = new List<MovieItem>() };
+
+                var apiResponse = JsonSerializer.Deserialize<ApiCountryResponse>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
-                
+
+                var result = new MovieListResponse
+                {
+                    Items = apiResponse?.Data?.Items ?? new List<MovieItem>(),
+                    Pagination = apiResponse?.Data?.Params?.Pagination
+                };
+
+                result.Items ??= new List<MovieItem>();
+
+                // ẢNH 
+                const string cdn = "https://phimimg.com";
+                foreach (var item in result.Items)
+                {
+                    // Fix PosterUrl
+                    if (!string.IsNullOrEmpty(item.PosterUrl))
+                    {
+                        if (item.PosterUrl.StartsWith("//"))
+                            item.PosterUrl = "https:" + item.PosterUrl;
+                        else if (!item.PosterUrl.StartsWith("http"))
+                            item.PosterUrl = cdn + "/" + item.PosterUrl.TrimStart('/');
+                    }
+
+                    // Fix ThumbUrl
+                    if (!string.IsNullOrEmpty(item.ThumbUrl))
+                    {
+                        if (item.ThumbUrl.StartsWith("//"))
+                            item.ThumbUrl = "https:" + item.ThumbUrl;
+                        else if (!item.ThumbUrl.StartsWith("http"))
+                            item.ThumbUrl = cdn + "/" + item.ThumbUrl.TrimStart('/');
+                    }
+
+                    // Nếu PosterUrl vẫn trống → dùng ThumbUrl làm ảnh chính
+                    if (string.IsNullOrEmpty(item.PosterUrl) && !string.IsNullOrEmpty(item.ThumbUrl))
+                    {
+                        item.PosterUrl = item.ThumbUrl;
+                    }
+                }
+
                 ApplyCustomTitles(result);
-                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching country movies: {ex.Message}");
-                return null;
+                Console.WriteLine($"Error GetMoviesByCountryAsync({countrySlug}): {ex.Message}");
+                return new MovieListResponse { Items = new List<MovieItem>() };
             }
         }
-
         // Lấy danh sách quốc gia
         public async Task<List<Category>?> GetCountriesAsync()
         {
@@ -360,7 +320,7 @@ namespace WebMovie.Services
                 var result = countries?.Select(c => new Category
                 {
                     Name = c.Name,
-                    Slug = c.Slug,
+                    Slug = c.Slug,  // Slug từ API như "han-quoc"
                     Id = c.Slug
                 }).ToList() ?? new List<Category>();
 
@@ -370,7 +330,15 @@ namespace WebMovie.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching countries: {ex.Message}");
-                return new List<Category>();
+                // Fallback nếu API chậm
+                return new List<Category>
+                {
+                    new Category { Name = "Hàn Quốc", Slug = "han-quoc" },
+                    new Category { Name = "Trung Quốc", Slug = "trung-quoc" },
+                    new Category { Name = "Mỹ", Slug = "my" },
+                    new Category { Name = "Nhật Bản", Slug = "nhat-ban" },
+                    new Category { Name = "Thái Lan", Slug = "thai-lan" }
+                };
             }
         }
 
@@ -434,32 +402,6 @@ namespace WebMovie.Services
             }
         }
 
-        // Filter out hidden movies from list (for non-admin users)
-        public void FilterHiddenMovies(MovieListResponse? list)
-        {
-            if (list == null || list.Items == null || _db == null) return;
-
-            var hiddenSlugs = _db.CustomMovieTitles
-                .Where(c => c.IsHidden)
-                .Select(c => c.MovieSlug)
-                .ToHashSet();
-
-            if (hiddenSlugs.Any())
-            {
-                list.Items = list.Items
-                    .Where(item => !string.IsNullOrEmpty(item.Slug) && !hiddenSlugs.Contains(item.Slug))
-                    .ToList();
-            }
-        }
-
-        // Check if movie is hidden
-        public bool IsMovieHidden(string slug)
-        {
-            if (string.IsNullOrEmpty(slug) || _db == null) return false;
-            return _db.CustomMovieTitles
-                .Any(c => c.MovieSlug == slug && c.IsHidden);
-        }
-
         private void ApplyCustomTitles(MovieDetailResponse? detail)
         {
             if (detail == null || detail.Movie == null || _db == null) return;
@@ -490,4 +432,20 @@ public class GenreResponse
 {
     public string Name { get; set; } = "";
     public string Slug { get; set; } = "";
+}
+public class ApiCountryResponse
+{
+    public string Status { get; set; } = "";
+    public ApiData? Data { get; set; }
+}
+
+public class ApiData
+{
+    public List<MovieItem>? Items { get; set; }
+    public ApiParams? Params { get; set; }
+}
+
+public class ApiParams
+{
+    public PaginationInfo? Pagination { get; set; }
 }

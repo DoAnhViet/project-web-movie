@@ -134,15 +134,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Tạm thời tắt HTTPS redirect trong Development để dễ truy cập
-if (app.Environment.IsDevelopment())
-{
-    // app.UseHttpsRedirection(); // Comment để có thể truy cập HTTP trực tiếp
-}
-else
-{
-    app.UseHttpsRedirection();
-}
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -157,8 +149,14 @@ app.MapRazorPages();
 app.MapBlazorHub();
 
 app.MapControllerRoute(
+    name: "country",
+    pattern: "quoc-gia/{slug}",
+    defaults: new { controller = "Movie", action = "Country" });
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 
 // Seed data (only if using a real database)
 if (!useInMemory)

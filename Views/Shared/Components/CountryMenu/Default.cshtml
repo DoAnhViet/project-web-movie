@@ -1,0 +1,26 @@
+@model List<WebMovie.Models.Category>
+
+@if (Model != null && Model.Any())
+{
+    @foreach (var country in Model.Take(12))
+    {
+        <li>
+            <a class="dropdown-item" 
+               asp-controller="Movie" 
+               asp-action="Country" 
+               asp-route-slug="@country.Slug">
+                @country.Name
+            </a>
+        </li>
+    }
+
+    <li><hr class="dropdown-divider"></li>
+}
+else
+{
+    <li>
+        <span class="dropdown-item text-muted">
+            Đang tải quốc gia...
+        </span>
+    </li>
+}

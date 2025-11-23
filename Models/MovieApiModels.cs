@@ -16,7 +16,9 @@ namespace WebMovie.Models
 
         [JsonPropertyName("pagination")]
         public PaginationInfo? Pagination { get; set; }
+        
     }
+    
 
     public class PaginationInfo
     {

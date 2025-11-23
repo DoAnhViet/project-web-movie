@@ -1,23 +1,37 @@
 @model WebMovie.Models.MovieListResponse
 @{
     ViewData["Title"] = "Phim Mới Cập Nhật";
+    var countryName = ViewBag.CountryName as string;
 }
 
 <div class="container mt-4">
-@if (!string.IsNullOrEmpty(ViewBag.Keyword))
+
+    @* 1. Kết quả tìm kiếm – giữ nguyên như cũ *@
+    @if (!string.IsNullOrEmpty(ViewBag.Keyword))
     {
-        
         <div class="alert alert-info text-center">
             <strong>Kết quả tìm kiếm cho:</strong> "@ViewBag.Keyword"
             <small class="ms-2">(@Model?.Pagination?.TotalItems phim)</small>
         </div>
     }
+    @* 2. Quốc Gia – chỉ hiện tên quốc gia (đơn giản như bạn muốn) *@
+    else if (!string.IsNullOrEmpty(countryName))
+    {
+        <h2 class="text-center mb-5 fw-bold text-white">
+            @countryName
+        </h2>
+    }
+    @* 3. Phim Mới Cập Nhật – hiện tiêu đề mặc định *@
+    else
+    {
+        <h2 class="text-center mb-5 fw-bold text-white">
+            Phim Mới Cập Nhật
+        </h2>
+    }
 
-    
     <div class="row">
         @if (Model?.Items != null && Model.Items.Any())
         {
-            @* YÊU CẦU ĐỒ ÁN: Sử dụng View Component *@
             @foreach (var movie in Model.Items)
             {
                 @await Component.InvokeAsync("MovieCard", movie)
@@ -30,7 +44,7 @@
                 <h4 class="text-muted">Không tìm thấy phim nào</h4>
             </div>
         }
-        </div>
+    </div>
         
         <!-- Pagination -->
         @if (Model?.Pagination != null && Model.Pagination.TotalPages > 1)

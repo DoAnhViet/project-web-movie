@@ -3,7 +3,6 @@
     ViewData["Title"] = "Quản lý phim";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
-@Html.AntiForgeryToken()
 
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -18,7 +17,7 @@
 
     <div class="alert alert-info">
         <i class="fas fa-info-circle me-2"></i>
-        Chọn phim để tùy chỉnh tiêu đề hiển thị hoặc ẩn phim khỏi website. Tiêu đề tùy chỉnh sẽ ghi đè tiêu đề gốc từ API.
+        Chọn phim để tùy chỉnh tiêu đề hiển thị. Tiêu đề tùy chỉnh sẽ ghi đè tiêu đề gốc từ API.
     </div>
 
     @if (Model == null || !Model.Any())
@@ -39,18 +38,12 @@
                             <img src="@movie.PosterUrl" 
                                  alt="@movie.Name" 
                                  class="card-img-top" 
-                                 style="height: 300px; object-fit: cover; @(ViewBag.HiddenMovieSlugs != null && ((List<string>)ViewBag.HiddenMovieSlugs).Contains(movie.Slug) ? "opacity: 0.5;" : "")"
+                                 style="height: 300px; object-fit: cover;"
                                  loading="lazy">
                             @if (!string.IsNullOrEmpty(movie.Quality))
                             {
                                 <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2">
                                     @movie.Quality
-                                </span>
-                            }
-                            @if (ViewBag.HiddenMovieSlugs != null && ((List<string>)ViewBag.HiddenMovieSlugs).Contains(movie.Slug))
-                            {
-                                <span class="badge bg-danger position-absolute top-0 end-0 m-2">
-                                    <i class="fas fa-eye-slash"></i> Đã ẩn
                                 </span>
                             }
                         </div>
@@ -74,12 +67,6 @@
                                    class="btn btn-primary btn-sm">
                                     <i class="fas fa-edit"></i> Tùy chỉnh tiêu đề
                                 </a>
-                                <button type="button" 
-                                        class="btn @(ViewBag.HiddenMovieSlugs != null && ((List<string>)ViewBag.HiddenMovieSlugs).Contains(movie.Slug) ? "btn-success" : "btn-warning") btn-sm toggle-hide-movie"
-                                        data-slug="@movie.Slug">
-                                    <i class="fas @(ViewBag.HiddenMovieSlugs != null && ((List<string>)ViewBag.HiddenMovieSlugs).Contains(movie.Slug) ? "fa-eye" : "fa-eye-slash")"></i> 
-                                    <span class="toggle-text">@(ViewBag.HiddenMovieSlugs != null && ((List<string>)ViewBag.HiddenMovieSlugs).Contains(movie.Slug) ? "Hiển thị" : "Ẩn phim")</span>
-                                </button>
                                 <a href="/Movie/Detail?slug=@movie.Slug" 
                                    class="btn btn-outline-secondary btn-sm" 
                                    target="_blank">
@@ -91,23 +78,14 @@
                 </div>
             }
         </div>
-    }
 
-    @{
-        var currentPage = ViewBag.CurrentPage ?? 1;
-        var totalPages = ViewBag.TotalPages ?? 1;
-        var totalItems = ViewBag.TotalItems ?? 0;
-    }
-    
-    @if (totalPages > 1)
+        @if (Model.Count >= 20)
         {
-            <div class="d-flex justify-content-between align-items-center mt-4 mb-2">
-                <div class="text-muted">
-                    Hiển thị trang @currentPage / @totalPages (@totalItems phim)
-                </div>
-            </div>
             <nav aria-label="Phân trang">
-                <ul class="pagination justify-content-center">
+                <ul class="pagination justify-content-center mt-4">
+                    @{
+                        var currentPage = ViewBag.CurrentPage ?? 1;
+                    }
                     @if (currentPage > 1)
                     {
                         <li class="page-item">
@@ -117,52 +95,18 @@
                         </li>
                     }
                     
-                    @{
-                        var startPage = Math.Max(1, currentPage - 2);
-                        var endPage = Math.Min(totalPages, currentPage + 2);
-                    }
-                    
-                    @if (startPage > 1)
-                    {
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1">1</a>
-                        </li>
-                        @if (startPage > 2)
-                        {
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        }
-                    }
-                    
-                    @for (int i = startPage; i <= endPage; i++)
+                    @for (int i = Math.Max(1, currentPage - 2); i <= currentPage + 2; i++)
                     {
                         <li class="page-item @(i == currentPage ? "active" : "")">
                             <a class="page-link" href="?page=@i">@i</a>
                         </li>
                     }
                     
-                    @if (endPage < totalPages)
-                    {
-                        @if (endPage < totalPages - 1)
-                        {
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                        }
-                        <li class="page-item">
-                            <a class="page-link" href="?page=@totalPages">@totalPages</a>
-                        </li>
-                    }
-                    
-                    @if (currentPage < totalPages)
-                    {
-                        <li class="page-item">
-                            <a class="page-link" href="?page=@(currentPage + 1)">
-                                Sau <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    }
+                    <li class="page-item">
+                        <a class="page-link" href="?page=@(currentPage + 1)">
+                            Sau <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         }
@@ -188,68 +132,3 @@
         color: #212529;
     }
 </style>
-
-@section Scripts {
-    <script>
-        $(document).ready(function() {
-            $('.toggle-hide-movie').on('click', function() {
-                var $btn = $(this);
-                var slug = $btn.data('slug');
-                var $card = $btn.closest('.movie-card-admin');
-                var $img = $card.find('.card-img-top');
-                var $badge = $card.find('.badge.bg-danger');
-                
-                // Disable button during request
-                $btn.prop('disabled', true);
-                
-                $.ajax({
-                    url: '@Url.Action("ToggleHideMovie", "Admin")',
-                    type: 'POST',
-                    data: { slug: slug },
-                    headers: {
-                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Update UI
-                            if (response.isHidden) {
-                                // Phim đã bị ẩn
-                                $img.css('opacity', '0.5');
-                                if ($badge.length === 0) {
-                                    $card.find('.position-relative').append(
-                                        '<span class="badge bg-danger position-absolute top-0 end-0 m-2"><i class="fas fa-eye-slash"></i> Đã ẩn</span>'
-                                    );
-                                }
-                                $btn.removeClass('btn-warning').addClass('btn-success');
-                                $btn.find('i').removeClass('fa-eye-slash').addClass('fa-eye');
-                                $btn.find('.toggle-text').text('Hiển thị');
-                            } else {
-                                // Phim đã được hiển thị
-                                $img.css('opacity', '1');
-                                $badge.remove();
-                                $btn.removeClass('btn-success').addClass('btn-warning');
-                                $btn.find('i').removeClass('fa-eye').addClass('fa-eye-slash');
-                                $btn.find('.toggle-text').text('Ẩn phim');
-                            }
-                            
-                            // Show success message
-                            if (typeof showToast === 'function') {
-                                showToast(response.message, 'success');
-                            } else {
-                                alert(response.message);
-                            }
-                        } else {
-                            alert('Có lỗi xảy ra: ' + (response.message || 'Unknown error'));
-                        }
-                    },
-                    error: function() {
-                        alert('Có lỗi xảy ra khi cập nhật trạng thái phim.');
-                    },
-                    complete: function() {
-                        $btn.prop('disabled', false);
-                    }
-                });
-            });
-        });
-    </script>
-}

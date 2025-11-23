@@ -281,9 +281,6 @@ namespace WebMovie.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
-                    b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<string>("MovieSlug")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -508,8 +505,7 @@ namespace WebMovie.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "MovieSlug")
-                        .IsUnique();
+                    b.HasIndex("UserId", "MovieSlug");
 
                     b.ToTable("WatchHistories");
                 });

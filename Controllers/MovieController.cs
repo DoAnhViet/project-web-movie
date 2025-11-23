@@ -101,15 +101,44 @@ namespace WebMovie.Controllers
         // Danh sách phim theo quốc gia
         public async Task<IActionResult> Country(string slug, int page = 1)
         {
+            if (string.IsNullOrEmpty(slug))
+                return RedirectToAction("NewMovies");
+
             var moviesResponse = await _movieApiService.GetMoviesByCountryAsync(slug, page);
-            if (moviesResponse == null)
-                return View("Error");
+
+            moviesResponse ??= new MovieListResponse
+            {
+                Items = new List<MovieItem>(),
+                Pagination = new PaginationInfo
+                {
+                    CurrentPage = page,
+                    TotalPages = 1,
+                    TotalItems = 0,
+                    TotalItemsPerPage = 20
+                }
+            };
+            var countryName = slug switch
+            {
+                "han-quoc" => "Hàn Quốc",
+                "trung-quoc" => "Trung Quốc",
+                "my" => "Mỹ",
+                "nhat-ban" => "Nhật Bản",
+                "thai-lan" => "Thái Lan",
+                "hong-kong" => "Hồng Kông",
+                "dai-loan" => "Đài Loan",
+                "viet-nam" => "Việt Nam",
+                "an-do" => "Ấn Độ",
+                _ => slug.Replace("-", " ").ToUpperFirst() // ví dụ: thai-lan → Thai Lan
+            };
+
+    ViewBag.CountryName = countryName;
 
             ViewBag.CountrySlug = slug;
-            ViewData["Title"] = $"Phim quốc gia: {slug}";
+            ViewBag.Page = page;
+            ViewData["Title"] = $"Phim {slug.Replace("-", " ")}";   
+
             return View("NewMovies", moviesResponse);
         }
-
         // 🔍 Tìm kiếm phim
         public async Task<IActionResult> Search(string keyword, int page = 1)
         {
@@ -200,6 +229,16 @@ namespace WebMovie.Controllers
             }
 
             return Json(new { success, isFavorite = !isFavorite, message });
+        }
+        
+    }
+    public static class StringExtensions
+    {
+        public static string ToUpperFirst(this string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            if (s.Length == 1) return s.ToUpper();
+            return char.ToUpper(s[0]) + s.Substring(1);
         }
     }
 }

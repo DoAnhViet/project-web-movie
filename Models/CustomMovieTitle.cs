@@ -46,10 +46,5 @@ namespace WebMovie.Models
         /// Admin ID đã cập nhật
         /// </summary>
         public string? UpdatedBy { get; set; }
-
-        /// <summary>
-        /// Phim có bị ẩn khỏi website không (chỉ admin mới thấy)
-        /// </summary>
-        public bool IsHidden { get; set; } = false;
     }
 }

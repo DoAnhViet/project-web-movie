@@ -6,482 +6,149 @@
 }
 
 <style>
-    body {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        min-height: 100vh;
-    }
-    
-    .dashboard-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-    
-    .dashboard-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .dashboard-header p {
-        margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-        font-size: 1.1rem;
-    }
-    
     .stat-card {
-        border-radius: 20px;
-        padding: 2rem;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: none;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        padding: 30px;
+        transition: all 0.3s ease;
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         background: white;
         position: relative;
         overflow: hidden;
-        height: 100%;
     }
-    
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 5px;
-        background: linear-gradient(90deg, var(--card-color-start), var(--card-color-end));
-    }
-    
     .stat-card:hover {
-        transform: translateY(-10px) scale(1.02);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        border-color: #000;
     }
-    
-    .stat-card.stat-card-users {
-        --card-color-start: #667eea;
-        --card-color-end: #764ba2;
-    }
-    
-    .stat-card.stat-card-views {
-        --card-color-start: #f093fb;
-        --card-color-end: #f5576c;
-    }
-    
-    .stat-card.stat-card-today {
-        --card-color-start: #4facfe;
-        --card-color-end: #00f2fe;
-    }
-    
-    .stat-card.stat-card-comments {
-        --card-color-start: #43e97b;
-        --card-color-end: #38f9d7;
-    }
-    
     .stat-card .card-icon {
-        font-size: 5rem;
-        opacity: 0.15;
+        font-size: 4rem;
+        opacity: 0.08;
         position: absolute;
-        right: 20px;
+        right: 15px;
         top: 50%;
         transform: translateY(-50%);
-        background: linear-gradient(135deg, var(--card-color-start), var(--card-color-end));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        transition: all 0.3s ease;
+        color: #000;
     }
-    
-    .stat-card:hover .card-icon {
-        transform: translateY(-50%) scale(1.1) rotate(5deg);
-        opacity: 0.2;
-    }
-    
     .stat-card h5 {
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 12px;
         color: #6b7280;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        letter-spacing: 0.5px;
     }
-    
-    .stat-card h5 i {
-        font-size: 1.2rem;
-        background: linear-gradient(135deg, var(--card-color-start), var(--card-color-end));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
     .stat-card .display-6 {
-        font-size: 3.5rem;
+        font-size: 2.8rem;
         font-weight: 800;
         margin: 0;
-        background: linear-gradient(135deg, var(--card-color-start), var(--card-color-end));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1;
+        color: #111827;
     }
-    
-    .stat-card .stat-change {
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: #10b981;
-        font-weight: 600;
-    }
-    
     .info-card {
         background: white;
-        border-radius: 20px;
-        border: none;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         transition: all 0.3s ease;
-        overflow: hidden;
     }
-    
     .info-card:hover {
-        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-        transform: translateY(-5px);
+        border-color: #000;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
     }
-    
     .info-card .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 1.5rem 2rem;
+        background: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+        padding: 20px 25px;
     }
-    
     .info-card .card-header h5 {
         font-weight: 700;
+        color: #111827;
         margin: 0;
-        font-size: 1.2rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
+        font-size: 1.1rem;
     }
-    
-    .info-card .card-header h5 i {
-        font-size: 1.3rem;
-    }
-    
-    .info-card .card-body {
-        padding: 2rem;
-    }
-    
-    .table {
-        margin: 0;
-    }
-    
     .table thead {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        border: none;
+        background: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
     }
-    
     .table thead th {
         font-weight: 700;
         color: #374151;
         font-size: 0.85rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 1.25rem 1rem;
-        border: none;
+        letter-spacing: 0.5px;
+        padding: 15px;
     }
-    
-    .table tbody tr {
-        transition: all 0.2s ease;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .table tbody tr:hover {
-        background: #f9fafb;
-        transform: scale(1.01);
-    }
-    
     .table tbody td {
-        padding: 1.25rem 1rem;
+        padding: 15px;
         color: #111827;
-        vertical-align: middle;
-        border: none;
     }
-    
-    .rank-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-    
-    .rank-badge.rank-1 {
-        background: linear-gradient(135deg, #fbbf24, #f59e0b);
-        color: white;
-    }
-    
-    .rank-badge.rank-2 {
-        background: linear-gradient(135deg, #94a3b8, #64748b);
-        color: white;
-    }
-    
-    .rank-badge.rank-3 {
-        background: linear-gradient(135deg, #f97316, #ea580c);
-        color: white;
-    }
-    
-    .rank-badge.rank-other {
-        background: #e5e7eb;
-        color: #6b7280;
-    }
-    
-    .views-badge {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
+    .badge {
         font-weight: 600;
+        padding: 6px 12px;
         font-size: 0.9rem;
     }
-    
-    .movie-title {
-        font-weight: 600;
-        color: #111827;
-        margin-bottom: 0.25rem;
-    }
-    
-    .movie-slug {
-        font-size: 0.85rem;
-        color: #6b7280;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 3rem 2rem;
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        color: #e5e7eb;
-        margin-bottom: 1rem;
-    }
-    
-    .empty-state p {
-        color: #9ca3af;
-        font-size: 1.1rem;
-    }
-    
-    .big-number {
-        font-size: 4.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        line-height: 1;
-        margin: 1rem 0;
-    }
-    
-    @@keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .stat-card, .info-card {
-        animation: fadeInUp 0.6s ease-out;
-    }
-    
-    .stat-card:nth-child(1) { animation-delay: 0.1s; }
-    .stat-card:nth-child(2) { animation-delay: 0.2s; }
-    .stat-card:nth-child(3) { animation-delay: 0.3s; }
-    .stat-card:nth-child(4) { animation-delay: 0.4s; }
-    
-    .top-movie-card {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem 1.25rem;
-        background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-        border-radius: 12px;
-        border: 2px solid #e5e7eb;
-        transition: all 0.3s ease;
-        min-width: 280px;
-        flex: 1 1 calc(50% - 0.75rem);
-        max-width: calc(50% - 0.75rem);
-    }
-    
-    .top-movie-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        border-color: #667eea;
-        background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-    }
-    
-    .top-movie-rank {
-        flex-shrink: 0;
-    }
-    
-    .top-movie-info {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .movie-title-horizontal {
-        font-weight: 600;
-        color: #111827;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .movie-views-horizontal {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        color: #6b7280;
-    }
-    
-    .movie-views-horizontal .views-badge {
-        font-size: 0.8rem;
-        padding: 0.35rem 0.75rem;
-    }
-    
-    @@media (max-width: 1200px) {
-        .top-movie-card {
-            min-width: 100%;
-            max-width: 100%;
-            flex: 1 1 100%;
-        }
+    .bg-dark-badge {
+        background-color: #111827 !important;
+        color: white !important;
     }
 </style>
 
-<div class="dashboard-header">
-    <h1><i class="fas fa-chart-line me-3"></i>Dashboard Quản Trị</h1>
-    <p><i class="fas fa-calendar-alt me-2"></i>@DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("vi-VN"))</p>
-</div>
-
-<div class="row g-4 mb-4">
+<div class="row mt-2 g-4">
     <div class="col-md-6 col-lg-3">
-        <div class="card stat-card stat-card-users">
+        <div class="card stat-card">
             <i class="fas fa-users card-icon"></i>
             <div class="card-body p-0">
-                <h5 class="card-title">
-                    <i class="fas fa-user-circle"></i>
-                    Tổng người dùng
-                </h5>
+                <h5 class="card-title">Người dùng</h5>
                 <p class="card-text display-6">@Model.TotalUsers</p>
-                <div class="stat-change">
-                    <i class="fas fa-arrow-up"></i> Tất cả người dùng
-                </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
-        <div class="card stat-card stat-card-views">
+        <div class="card stat-card">
             <i class="fas fa-eye card-icon"></i>
             <div class="card-body p-0">
-                <h5 class="card-title">
-                    <i class="fas fa-play-circle"></i>
-                    Tổng lượt xem
-                </h5>
+                <h5 class="card-title">Lượt xem (Tổng)</h5>
                 <p class="card-text display-6">@Model.TotalWatchHistory</p>
-                <div class="stat-change">
-                    <i class="fas fa-chart-line"></i> Tất cả thời gian
-                </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
-        <div class="card stat-card stat-card-today">
+        <div class="card stat-card">
             <i class="fas fa-fire card-icon"></i>
             <div class="card-body p-0">
-                <h5 class="card-title">
-                    <i class="fas fa-calendar-day"></i>
-                    Lượt xem hôm nay
-                </h5>
+                <h5 class="card-title">Hôm nay</h5>
                 <p class="card-text display-6">@Model.ViewsToday</p>
-                <div class="stat-change">
-                    <i class="fas fa-bolt"></i> Hoạt động hôm nay
-                </div>
             </div>
         </div>
     </div>
 
     <div class="col-md-6 col-lg-3">
-        <div class="card stat-card stat-card-comments">
+        <div class="card stat-card">
             <i class="fas fa-comments card-icon"></i>
             <div class="card-body p-0">
-                <h5 class="card-title">
-                    <i class="fas fa-comment-dots"></i>
-                    Tổng bình luận
-                </h5>
+                <h5 class="card-title">Bình luận</h5>
                 <p class="card-text display-6">@Model.CommentsCount</p>
-                <div class="stat-change">
-                    <i class="fas fa-comments"></i> Tất cả bình luận
-                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-3">
+<div class="row mt-4 g-4">
+    <div class="col-lg-6">
         <div class="card info-card h-100">
             <div class="card-header">
                 <h5>
-                    <i class="fas fa-database"></i>
-                    Tổng số phim
+                    <i class="fas fa-database me-2"></i>
+                    Thống kê phim từ API
                 </h5>
             </div>
             <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 200px;">
                 <div class="text-center">
-                    <i class="fas fa-film" style="font-size: 4rem; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 1rem;"></i>
-                    <p class="text-muted mb-2" style="font-size: 1rem; font-weight: 500;">Phim từ API</p>
-                    <div class="big-number" style="font-size: 3.5rem;">@Model.TotalMoviesFromApi.ToString("N0")</div>
-                    <p class="text-muted mt-2 mb-0" style="font-size: 0.85rem;">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Tổng số phim có sẵn
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3">
-        <div class="card info-card h-100">
-            <div class="card-header">
-                <h5>
-                    <i class="fas fa-eye-slash"></i>
-                    Phim đã ẩn
-                </h5>
-            </div>
-            <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 200px;">
-                <div class="text-center">
-                    <i class="fas fa-ban" style="font-size: 4rem; background: linear-gradient(135deg, #f093fb, #f5576c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 1rem;"></i>
-                    <p class="text-muted mb-2" style="font-size: 1rem; font-weight: 500;">Phim đã bị ẩn</p>
-                    <div class="big-number" style="font-size: 3.5rem;">@Model.HiddenMoviesCount</div>
-                    <p class="text-muted mt-2 mb-0" style="font-size: 0.85rem;">
-                        <i class="fas fa-exclamation-triangle me-1"></i>
-                        Không hiển thị trên website
-                    </p>
+                    <i class="fas fa-film fa-3x mb-3" style="color: #e5e7eb;"></i>
+                    <p class="text-muted mb-2" style="font-size: 0.95rem;">Tổng số phim có sẵn</p>
+                    <h1 class="mb-0" style="font-size: 3.5rem; font-weight: 800; color: #111827;">@Model.TotalMoviesFromApi</h1>
                 </div>
             </div>
         </div>
@@ -491,42 +158,57 @@
         <div class="card info-card h-100">
             <div class="card-header">
                 <h5>
-                    <i class="fas fa-fire"></i>
+                    <i class="fas fa-fire me-2"></i>
                     Top phim xem nhiều nhất
                 </h5>
             </div>
             <div class="card-body">
                 @if (Model.TopMovies?.Any() ?? false)
                 {
-                    <div class="d-flex flex-wrap gap-3 justify-content-start">
-                        @{int rank = 1;}
-                        @foreach (var m in Model.TopMovies.Take(6))
-                        {
-                            <div class="top-movie-card">
-                                <div class="top-movie-rank">
-                                    <span class="rank-badge @(rank == 1 ? "rank-1" : rank == 2 ? "rank-2" : rank == 3 ? "rank-3" : "rank-other")">
-                                        @rank
-                                    </span>
-                                </div>
-                                <div class="top-movie-info">
-                                    <div class="movie-title-horizontal" title="@System.Net.WebUtility.HtmlDecode(m.Title)">
-                                        @System.Net.WebUtility.HtmlDecode(m.Title)
-                                    </div>
-                                    <div class="movie-views-horizontal">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 10%;" class="text-center">#</th>
+                                    <th style="width: 65%;">
+                                        <i class="fas fa-film me-1"></i>
+                                        Tên phim
+                                    </th>
+                                    <th style="width: 25%;" class="text-center">
                                         <i class="fas fa-eye me-1"></i>
-                                        <span class="views-badge">@m.Views.ToString("N0")</span>
-                                    </div>
-                                </div>
-                            </div>
-                            rank++;
-                        }
+                                        Lượt xem
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{int rank = 1;}
+                                @foreach (var m in Model.TopMovies)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            <strong style="color: #6b7280;">@rank</strong>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 350px;" title="@System.Net.WebUtility.HtmlDecode(m.Title)">
+                                                <strong>@System.Net.WebUtility.HtmlDecode(m.Title)</strong>
+                                            </div>
+                                            <small class="text-muted">@m.Slug</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-dark-badge">@m.Views</span>
+                                        </td>
+                                    </tr>
+                                    rank++;
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 }
                 else
                 {
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>Chưa có dữ liệu lịch sử xem</p>
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x mb-3" style="color: #e5e7eb;"></i>
+                        <p class="text-muted mb-0">Chưa có dữ liệu lịch sử xem</p>
                     </div>
                 }
             </div>
