@@ -58,6 +58,35 @@ namespace WebMovie.Controllers
             return View(model);
         }
 
+
+
+// ========== avata ==========
+
+[HttpPost]
+public async Task<IActionResult> UpdateAvatar(IFormFile AvatarFile)
+{
+    var user = await _userManager.GetUserAsync(User);
+
+    if (AvatarFile != null && AvatarFile.Length > 0)
+    {
+        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(AvatarFile.FileName)}";
+        var path = Path.Combine("wwwroot/avatars", fileName);
+
+        using (var stream = new FileStream(path, FileMode.Create))
+        {
+            await AvatarFile.CopyToAsync(stream);
+        }
+
+        user.AvatarUrl = "/avatars/" + fileName;
+
+        await _userManager.UpdateAsync(user);
+    }
+
+    return RedirectToAction("Profile");
+}
+
+
+
         // ========== LOGIN ==========
         [HttpGet]
         public IActionResult Login() => View();
