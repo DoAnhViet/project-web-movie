@@ -130,6 +130,8 @@ namespace WebMovie.Controllers
 
             var payload = comments.Select(c => new
             {
+                   avatarUrl = c.User?.AvatarUrl,   ///
+
                 id = c.Id,
                 content = c.Content,
                 createdAt = c.CreatedAt,
