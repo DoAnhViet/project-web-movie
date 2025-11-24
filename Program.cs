@@ -5,6 +5,10 @@ using WebMovie.Models;
 using WebMovie.Data;
 using WebMovie.Services;
 using DotNetEnv;
+using CloudinaryDotNet;
+using Microsoft.Extensions.Options;
+
+
 
 // Load .env file
 Env.Load();
@@ -70,8 +74,24 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 builder.Services.AddControllersWithViews();
+// cloud ava// CLOUDINARY — chỉ cần cấu hình đúng section và không đăng ký 2 lần
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("Cloudinary")
+);
 
+// Register Cloudinary instance
+builder.Services.AddSingleton(s =>
+{
+    var config = s.GetRequiredService<IOptions<CloudinarySettings>>().Value;
 
+    if (string.IsNullOrEmpty(config.CloudName))
+        throw new Exception("Cloudinary CloudName missing from configuration!");
+
+    return new Cloudinary(new Account(config.CloudName, config.ApiKey, config.ApiSecret));
+});
+
+// Register CloudinaryService (Scoped để dùng trong controller)
+builder.Services.AddScoped<CloudinaryService>();
 
 // ======================= GOOGLE AUTH =======================
 builder.Services
@@ -149,14 +169,8 @@ app.MapRazorPages();
 app.MapBlazorHub();
 
 app.MapControllerRoute(
-    name: "country",
-    pattern: "quoc-gia/{slug}",
-    defaults: new { controller = "Movie", action = "Country" });
-
-app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
 
 // Seed data (only if using a real database)
 if (!useInMemory)
