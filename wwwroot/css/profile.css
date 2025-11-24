@@ -140,6 +140,23 @@
     color: white;
 }
 
+.change-name-box {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.change-name-box h5 {
+    font-weight: 600;
+    color: #333;
+}
+
+
+.btnChangeAvatar{
+     background: linear-gradient(135deg, #e94560 0%, #d63447 100%);
+     color: white;
+}
+
 .btn-logout {
     background: linear-gradient(135deg, #e94560 0%, #d63447 100%);
     color: white;
