@@ -81,6 +81,32 @@ namespace WebMovie.Controllers
 }
 
 
+
+// ========== UPDATE NAME ==========
+[HttpPost]
+public async Task<IActionResult> UpdateName(string fullName)
+{
+    var user = await _userManager.GetUserAsync(User);
+    if (user == null)
+        return RedirectToAction("Login");
+
+    if (string.IsNullOrWhiteSpace(fullName))
+    {
+        TempData["Error"] = "Tên không được để trống";
+        return RedirectToAction("Profile");
+    }
+
+    // Cập nhật tên
+    user.FullName = fullName.Trim();
+    await _userManager.UpdateAsync(user);
+
+    TempData["Success"] = "Đã đổi tên thành công!";
+    return RedirectToAction("Profile");
+}
+
+
+
+
         // ========== LOGIN ==========
         [HttpGet]
         public IActionResult Login() => View();
