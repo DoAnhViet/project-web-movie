@@ -7,9 +7,26 @@
 
 <div class="profile-wrapper">
     <div class="profile-card">
-        <img class="profile-avatar" 
-             src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.FullName ?? "User")&size=150&background=e94560&color=ffffff&bold=true" 
-             alt="@Model.FullName">
+       <img class="profile-avatar"
+     src="@(string.IsNullOrEmpty(Model.AvatarUrl) 
+         ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(Model.FullName ?? "User")}&size=150&background=e94560&color=ffffff&bold=true"
+         : Model.AvatarUrl)"
+     alt="@Model.FullName">
+
+
+
+<div class="text-center mt-3">
+    <button type="button" id="btnChangeAvatar" class="btn btn-primary">
+        <i class="fas fa-camera"></i> Thay đổi avatar
+    </button>
+</div>
+
+<form id="avatarForm" asp-action="UpdateAvatar" asp-controller="Account" method="post" enctype="multipart/form-data" class="mt-3" style="display:none;">
+    <input type="file" name="AvatarFile" accept="image/*" class="form-control mb-2" required />
+    <button type="submit" class="btn btn-success w-100">
+        <i class="fas fa-save"></i> Lưu avatar
+    </button>
+</form>
 
         <h2 class="profile-name">@Model.FullName</h2>
         <p class="profile-email">
@@ -48,3 +65,8 @@
         </form>
     </div>
 </div>
+<script>
+    document.getElementById("btnChangeAvatar").addEventListener("click", () => {
+        document.getElementById("avatarForm").style.display = "block";
+    });
+</script>
