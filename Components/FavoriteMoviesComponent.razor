@@ -196,11 +196,15 @@
                     message = "Đã xóa khỏi danh sách yêu thích!";
                     isError = false;
                     
-                    // Auto hide message after 3 seconds
-                    _ = Task.Delay(3000).ContinueWith(_ => 
+                    // Auto hide message after 3 seconds (use InvokeAsync to marshal to Blazor renderer)
+                    _ = Task.Run(async () =>
                     {
-                        message = string.Empty;
-                        StateHasChanged();
+                        await Task.Delay(3000);
+                        await InvokeAsync(() =>
+                        {
+                            message = string.Empty;
+                            StateHasChanged();
+                        });
                     });
                 }
                 else

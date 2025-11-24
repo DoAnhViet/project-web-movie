@@ -223,6 +223,14 @@
                         <a class="nav-link" href="/Movie/NewMovies"><i class="fas fa-film"></i> Phim Mới Cập Nhật</a>
                     </li>
                     <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Thể loại
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
+                            @await Component.InvokeAsync("CategoryMenu")
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="countryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Quốc Gia
                     </a>

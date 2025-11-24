@@ -2,69 +2,40 @@
 @{
     var slug = ViewBag.CategorySlug as string;
 
-    // 🌸 Ánh xạ slug → tên thể loại tiếng Việt có dấu
-    var categoryNames = new Dictionary<string, string>
-    {
-        { "hoat-hinh", "Hoạt Hình" },
-        { "phim-hoat-hinh", "Phim Hoạt Hình" },
-        { "phim-hanh-dong", "Phim Hành Động" },
-        { "phim-tinh-cam", "Phim Tình Cảm" },
-        { "phim-hai-huoc", "Phim Hài Hước" },
-        { "phim-kinh-di", "Phim Kinh Dị" },
-        { "phim-vien-tuong", "Phim Viễn Tưởng" },
-        { "phim-chieu-rap", "Phim Chiếu Rạp" },
-        { "phim-le", "Phim Lẻ" },
-        { "phim-bo", "Phim Bộ" },
-        { "han-quoc", "Hàn Quốc" },
-        { "trung-quoc", "Trung Quốc" },
-        { "nhat-ban", "Nhật Bản" },
-        { "my", "Mỹ" },
-        { "viet-nam", "Việt Nam" }
-    };
+    // Prefer controller-provided CategoryName (mimic Country page behavior)
+    var categoryName = ViewBag.CategoryName as string;
 
-    var categoryName = categoryNames.ContainsKey(slug ?? "") ? categoryNames[slug] : slug;
+    if (string.IsNullOrEmpty(categoryName))
+    {
+        // Nếu controller chưa cung cấp, gọi helper chung
+        categoryName = WebMovie.Helpers.CategoryNames.GetDisplayName(slug);
+    }
 
     ViewData["Title"] = categoryName;
-    string currentSort = Context.Request.Query["sort_type"];
-    string currentCountry = Context.Request.Query["country"];
 }
 
 <div class="container mt-4">
-    <h2 class="mb-4">@ViewData["Title"]</h2>
+    <h2 class="text-center mb-5 fw-bold text-white">@ViewData["Title"]</h2>
 
-    <!-- Bộ lọc -->
-    <form method="get" class="row g-3 mb-4">
-        <input type="hidden" name="slug" value="@slug" />
-
-        <div class="col-md-4 col-sm-6">
-            <label for="country" class="form-label">Quốc gia</label>
-            <select id="country" name="country" class="form-select" onchange="this.form.submit()">
-                <option value="">Tất cả</option>
-                <option value="vi" selected="@(currentCountry == "vi" ? "selected" : null)">Việt Nam</option>
-                <option value="us" selected="@(currentCountry == "us" ? "selected" : null)">Mỹ</option>
-                <option value="kr" selected="@(currentCountry == "kr" ? "selected" : null)">Hàn Quốc</option>
-                <option value="cn" selected="@(currentCountry == "cn" ? "selected" : null)">Trung Quốc</option>
-                <option value="jp" selected="@(currentCountry == "jp" ? "selected" : null)">Nhật Bản</option>
-            </select>
+    @* Debug helper: show slug and item count when no movies found *@
+    @if ((Model?.Items == null || !Model.Items.Any()) && !string.IsNullOrEmpty(slug))
+    {
+        <div class="alert alert-warning">
+            <strong>Không tìm thấy phim nào cho thể loại:</strong> <em>@(slug)</em>
         </div>
+    }
 
-        <div class="col-md-4 col-sm-6">
-            <label for="sort_type" class="form-label">Sắp xếp</label>
-            <select id="sort_type" name="sort_type" class="form-select" onchange="this.form.submit()">
-                <option value="desc" selected="@(currentSort == "desc" ? "selected" : null)">Mới nhất</option>
-                <option value="asc" selected="@(currentSort == "asc" ? "selected" : null)">Cũ nhất</option>
-            </select>
-        </div>
-    </form>
+    <!-- Bộ lọc đã được loại bỏ — trang hiển thị danh sách phim theo thể loại đã chọn -->
 
     <!-- Danh sách phim -->
     <div class="row">
         @if (Model?.Items != null && Model.Items.Any())
         {
-            @foreach (var movie in Model.Items)
+            var itemsToShow = Model.Items.Take(18);
+            foreach (var movie in itemsToShow)
             {
                 <div class="col-lg-2 col-md-3 col-sm-4 col-6 movie-card">
-                    <a href="/Watch?slug=@movie.Slug">
+                    <a href="/Movie/Detail?slug=@movie.Slug">
                         <div class="position-relative">
                             <img src="@movie.PosterUrl" alt="@movie.Name" loading="lazy" class="img-fluid rounded" />
                             @if (!string.IsNullOrEmpty(movie.Quality))
@@ -103,7 +74,7 @@
                 @if (pagination.CurrentPage > 1)
                 {
                     <li class="page-item">
-                        <a class="page-link" href="?page=@(pagination.CurrentPage - 1)&sort_type=@currentSort&country=@currentCountry">
+                        <a class="page-link" href="?page=@(pagination.CurrentPage - 1)">
                             <i class="fas fa-chevron-left"></i> Trước
                         </a>
                     </li>
@@ -114,14 +85,14 @@
                      i++)
                 {
                     <li class="page-item @(i == pagination.CurrentPage ? "active" : "")">
-                        <a class="page-link" href="?page=@i&sort_type=@currentSort&country=@currentCountry">@i</a>
+                        <a class="page-link" href="?page=@i">@i</a>
                     </li>
                 }
 
                 @if (pagination.CurrentPage < pagination.TotalPages)
                 {
                     <li class="page-item">
-                        <a class="page-link" href="?page=@(pagination.CurrentPage + 1)&sort_type=@currentSort&country=@currentCountry">
+                        <a class="page-link" href="?page=@(pagination.CurrentPage + 1)">
                             Sau <i class="fas fa-chevron-right"></i>
                         </a>
                     </li>

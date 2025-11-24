@@ -103,7 +103,7 @@
                                             <div class="mt-2">
                                                 @foreach (var cat in movie.Category)
                                                 {
-                                                    <a href="/Movie/Category/@cat.Slug" class="badge bg-primary me-1">@cat.Name</a>
+                                                    <a href="/the-loai/@cat.Slug" class="badge bg-primary me-1">@cat.Name</a>
                                                 }
                                             </div>
                                         </div>
@@ -117,7 +117,7 @@
                                             <div class="mt-2">
                                                 @foreach (var country in movie.Country)
                                                 {
-                                                    <a href="/Movie/Country/@country.Slug" class="badge bg-secondary me-1">@country.Name</a>
+                                                    <a href="/quoc-gia/@country.Slug" class="badge bg-secondary me-1">@country.Name</a>
                                                 }
                                             </div>
                                         </div>
@@ -143,6 +143,34 @@
                                 </div>
                             </div>
                             
+                           
+                            @* Episodes list: render under the trailer, grouped by server, 10 items per row *@
+                            @if (Model.Episodes != null && Model.Episodes.Any())
+                            {
+                                <div class="episodes-section mt-4">
+                                    <h3 class="d-flex justify-content-between align-items-center"><span><i class="fas fa-list-ol"></i> Danh sách tập</span></h3>
+                                    <div class="mb-2 d-flex justify-content-end">
+                                        <h3>Tìm tập nhanh</h3>
+                                        <input id="episode-search" type="search" placeholder="Tìm tập (số hoặc tên)..." class="form-control episode-search" />
+                                    </div>
+                                    @foreach (var server in Model.Episodes)
+                                    {
+                                        <div class="server-block mb-3">
+                                            <h5 class="server-name">@server.ServerName</h5>
+                                                <div class="episodes-grid" data-server="@server.ServerName">
+                                                    @foreach (var episode in server.ServerDataList)
+                                                    {
+                                                        <a href="/Watch?slug=@Uri.EscapeDataString(movie.Slug)&episode=@Uri.EscapeDataString(episode.Slug)" 
+                                                           class="episode-item" 
+                                                           title="@episode.Name">
+                                                            @episode.Name
+                                                        </a>
+                                                    }
+                                                </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -159,7 +187,6 @@
 
 <style>
     .movie-detail-section {
-        background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
         color: #fff;
         padding: 30px 0;
         min-height: 100vh;
@@ -213,6 +240,44 @@
         opacity: 0.8;
         text-decoration: none;
     }
+
+    /* Episode search input: left-align container and compact size */
+    .episodes-section .mb-2.d-flex {
+        justify-content: flex-start !important; /* override bootstrap justify-content-end */
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .episodes-section .mb-2 h3 {
+        font-size: 1rem;
+        margin: 0;
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .episode-search {
+        max-width: 180px;
+        width: auto !important;
+        display: inline-block;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 0.92rem;
+        height: 36px;
+        background: #222;
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .episode-search::placeholder { color: #aaa; }
+    
+    /* Reduce gap between episode items to 5px for compact layout */
+    .episodes-grid .episode-item {
+        background-color: #474747;
+        margin: 5px; /* consistent spacing between items */
+        display: inline-block; /* ensure horizontal flow */
+    }
+
+    .server-name { color: #f6b352; margin-bottom: 8px; }
 </style>
 
 @section Scripts {
@@ -220,53 +285,136 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <script>
-        document.getElementById('favorite-btn')?.addEventListener('click', function () {
-            const btn = this;
-            const slug = btn.dataset.slug;
-            const name = btn.dataset.name;
-            const poster = btn.dataset.poster;
-            const isFavorite = btn.classList.contains('btn-danger');
+        (function () {
+            // Favorite button handling
+            function initFavoriteButton() {
+                const btn = document.getElementById('favorite-btn');
+                if (!btn) return;
+                btn.addEventListener('click', function () {
+                    const btn = this;
+                    const slug = btn.dataset.slug;
+                    const name = btn.dataset.name;
+                    const poster = btn.dataset.poster;
 
-            btn.disabled = true;
-            const originalHTML = btn.innerHTML;
+                    btn.disabled = true;
+                    const originalHTML = btn.innerHTML;
 
-            const formData = new FormData();
-            formData.append('slug', slug);
-            formData.append('name', name);
-            formData.append('posterUrl', poster);
-            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+                    const formData = new FormData();
+                    formData.append('slug', slug);
+                    formData.append('name', name);
+                    formData.append('posterUrl', poster);
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    if (tokenInput) formData.append('__RequestVerificationToken', tokenInput.value);
 
-            fetch('/Movie/ToggleFavorite', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    const icon = data.isFavorite ? 'fas fa-heart' : 'far fa-heart';
-                    const text = data.isFavorite ? ' Đã yêu thích' : ' Yêu thích';
-                    btn.innerHTML = `<i class="${icon}"></i>${text}`;
-                    btn.className = data.isFavorite ? 'btn btn-danger w-100' : 'btn btn-outline-light w-100';
+                    fetch('/Movie/ToggleFavorite', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                const icon = data.isFavorite ? 'fas fa-heart' : 'far fa-heart';
+                                const text = data.isFavorite ? ' Đã yêu thích' : ' Yêu thích';
+                                btn.innerHTML = `<i class="${icon}"></i>${text}`;
+                                btn.className = data.isFavorite ? 'btn btn-danger w-100' : 'btn btn-outline-light w-100';
 
-                    Toastify({
-                        text: data.message,
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: data.isFavorite ? "#28a745" : "#dc3545"
-                    }).showToast();
-                } else {
-                    btn.innerHTML = originalHTML;
-                    Toastify({ text: "Lỗi! Thử lại.", backgroundColor: "red" }).showToast();
+                                Toastify({
+                                    text: data.message,
+                                    duration: 3000,
+                                    gravity: "top",
+                                    position: "right",
+                                    backgroundColor: data.isFavorite ? "#28a745" : "#dc3545"
+                                }).showToast();
+                            } else {
+                                btn.innerHTML = originalHTML;
+                                Toastify({ text: "Lỗi! Thử lại.", backgroundColor: "red" }).showToast();
+                            }
+                        })
+                        .catch(() => {
+                            btn.innerHTML = originalHTML;
+                            Toastify({ text: "Lỗi kết nối!", backgroundColor: "red" }).showToast();
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                        });
+                });
+            }
+
+            // Episode quick search: filter per server block, highlight matches and allow Enter to open first
+            function initEpisodeSearch() {
+                const input = document.getElementById('episode-search');
+                if (!input) return;
+
+                const serverBlocks = Array.from(document.querySelectorAll('.server-block'));
+
+                // create match count badge
+                let badge = document.getElementById('episode-match-count');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.id = 'episode-match-count';
+                    badge.className = 'badge bg-info text-dark ms-2';
+                    input.parentNode.insertBefore(badge, input.nextSibling);
                 }
-            })
-            .catch(() => {
-                btn.innerHTML = originalHTML;
-                Toastify({ text: "Lỗi kết nối!", backgroundColor: "red" }).showToast();
-            })
-            .finally(() => {
-                btn.disabled = false;
-            });
-        });
+
+                input.addEventListener('input', function (e) {
+                    const q = (e.target.value || '').trim().toLowerCase();
+                    let totalMatches = 0;
+
+                    serverBlocks.forEach(sb => {
+                        const grid = sb.querySelector('.episodes-grid');
+                        if (!grid) return;
+                        const eps = Array.from(grid.querySelectorAll('.episode-item'));
+                        let matches = 0;
+                        eps.forEach(ep => {
+                            const text = (ep.textContent || ep.innerText || '').trim().toLowerCase();
+                            const isMatch = !q || text.indexOf(q) !== -1;
+                            ep.style.display = isMatch ? '' : 'none';
+                            if (q && text.indexOf(q) !== -1) {
+                                ep.classList.add('episode-match');
+                                matches++;
+                            } else {
+                                ep.classList.remove('episode-match');
+                            }
+                        });
+
+                        // show/hide server block depending on matches or empty query
+                        sb.style.display = (!q || matches > 0) ? '' : 'none';
+                        totalMatches += matches;
+                    });
+
+                    badge.textContent = q ? `${totalMatches} kết quả` : '';
+                });
+
+                // Enter to open first matched episode
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const first = document.querySelector('.episode-item.episode-match');
+                        if (first) first.click();
+                    }
+                });
+            }
+
+            // Initialize on DOM ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    initFavoriteButton();
+                    initEpisodeSearch();
+                });
+            } else {
+                initFavoriteButton();
+                initEpisodeSearch();
+            }
+        })();
     </script>
+
+    <style>
+        /* highlight matched episode */
+        .episode-match {
+            box-shadow: 0 0 0 2px rgba(246, 189, 59, 0.15) inset, 0 2px 6px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            background-color: #f6b352 !important;
+            color: #000 !important;
+        }
+    </style>
 }

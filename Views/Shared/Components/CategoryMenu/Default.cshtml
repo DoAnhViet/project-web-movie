@@ -1,0 +1,21 @@
+@model List<WebMovie.Models.Category>
+
+@if (Model != null && Model.Any())
+{
+    foreach (var cat in Model)
+    {
+        <li>
+            <a class="dropdown-item" href="@Url.Action("CategoryDetail", "Movie", new { slug = cat.Slug })">
+                @cat.Name
+            </a>
+        </li>
+    }
+
+    <li><hr class="dropdown-divider"></li>
+}
+else
+{
+    <li>
+        <span class="dropdown-item text-muted">Đang tải thể loại...</span>
+    </li>
+}

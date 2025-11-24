@@ -126,12 +126,40 @@ namespace WebMovie.Services
                 response.EnsureSuccessStatusCode();
                 
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                var resp = new MovieListResponse();
+                if (root.TryGetProperty("status", out var statusEl) && statusEl.ValueKind == JsonValueKind.True)
+                    resp.Status = true;
+                if (root.TryGetProperty("msg", out var msgEl) && msgEl.ValueKind == JsonValueKind.String)
+                    resp.Message = msgEl.GetString();
+
+                if (root.TryGetProperty("data", out var dataEl))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
-                
-                return result;
+                    if (dataEl.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
+                    {
+                        resp.Items = JsonSerializer.Deserialize<List<MovieItem>>(itemsEl.GetRawText(), options);
+                    }
+
+                    if (dataEl.TryGetProperty("params", out var paramsEl) && paramsEl.ValueKind == JsonValueKind.Object)
+                    {
+                        if (paramsEl.TryGetProperty("pagination", out var pagEl) && pagEl.ValueKind == JsonValueKind.Object)
+                        {
+                            resp.Pagination = JsonSerializer.Deserialize<PaginationInfo>(pagEl.GetRawText(), options);
+                        }
+                    }
+                }
+
+                // Normalize image URLs (ensure absolute URLs)
+                if (resp.Items != null)
+                {
+                    NormalizeImageUrls(resp.Items);
+                }
+
+                return resp;
             }
             catch (Exception ex)
             {
@@ -168,14 +196,41 @@ namespace WebMovie.Services
                 var query = string.Join("&", queryParams);
                 var response = await _httpClient.GetAsync($"/v1/api/the-loai/{categorySlug}?{query}");
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                var resp = new MovieListResponse();
+                if (root.TryGetProperty("status", out var statusEl) && statusEl.ValueKind == JsonValueKind.True)
+                    resp.Status = true;
+                if (root.TryGetProperty("msg", out var msgEl) && msgEl.ValueKind == JsonValueKind.String)
+                    resp.Message = msgEl.GetString();
+
+                if (root.TryGetProperty("data", out var dataEl))
                 {
-                    PropertyNameCaseInsensitive = true
-                });
-                
-                return result;
+                    if (dataEl.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
+                    {
+                        resp.Items = JsonSerializer.Deserialize<List<MovieItem>>(itemsEl.GetRawText(), options);
+                    }
+
+                    if (dataEl.TryGetProperty("params", out var paramsEl) && paramsEl.ValueKind == JsonValueKind.Object)
+                    {
+                        if (paramsEl.TryGetProperty("pagination", out var pagEl) && pagEl.ValueKind == JsonValueKind.Object)
+                        {
+                            resp.Pagination = JsonSerializer.Deserialize<PaginationInfo>(pagEl.GetRawText(), options);
+                        }
+                    }
+                }
+
+                // Normalize image URLs for category detail
+                if (resp.Items != null)
+                {
+                    NormalizeImageUrls(resp.Items);
+                }
+
+                return resp;
             }
             catch (Exception ex)
             {
@@ -377,6 +432,38 @@ namespace WebMovie.Services
         }
 
         #region Custom Titles Support
+        // Normalize image URLs helper
+        private void NormalizeImageUrls(List<MovieItem> items)
+        {
+            if (items == null) return;
+            const string cdn = "https://phimimg.com";
+            foreach (var item in items)
+            {
+                if (item == null) continue;
+
+                // PosterUrl
+                if (!string.IsNullOrEmpty(item.PosterUrl))
+                {
+                    if (item.PosterUrl.StartsWith("//"))
+                        item.PosterUrl = "https:" + item.PosterUrl;
+                    else if (!item.PosterUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        item.PosterUrl = cdn + "/" + item.PosterUrl.TrimStart('/');
+                }
+
+                // ThumbUrl
+                if (!string.IsNullOrEmpty(item.ThumbUrl))
+                {
+                    if (item.ThumbUrl.StartsWith("//"))
+                        item.ThumbUrl = "https:" + item.ThumbUrl;
+                    else if (!item.ThumbUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                        item.ThumbUrl = cdn + "/" + item.ThumbUrl.TrimStart('/');
+                }
+
+                // fallback
+                if (string.IsNullOrEmpty(item.PosterUrl) && !string.IsNullOrEmpty(item.ThumbUrl))
+                    item.PosterUrl = item.ThumbUrl;
+            }
+        }
         // Apply custom titles from database to movie list
         private void ApplyCustomTitles(MovieListResponse? list)
         {

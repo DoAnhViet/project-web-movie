@@ -1,21 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
 using WebMovie.Services;
 using WebMovie.Models;
+using WebMovie.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System;
+using System.Linq;
 
 namespace WebMovie.Controllers
 {
     public class MovieController : Controller
     {
-        private readonly MovieApiService _movieApiService;
-        private readonly FavoriteService _favoriteService;
+    private readonly MovieApiService _movieApiService;
+    private readonly FavoriteService _favoriteService;
+    private readonly ILogger<MovieController> _logger;
 
-        public MovieController(MovieApiService movieApiService, FavoriteService favoriteService)
+        public MovieController(MovieApiService movieApiService, FavoriteService favoriteService, ILogger<MovieController> logger)
         {
             _movieApiService = movieApiService;
             _favoriteService = favoriteService;
+            _logger = logger;
         }
+
 
 
         // Trang chi tiết phim
@@ -58,13 +64,62 @@ namespace WebMovie.Controllers
         // Danh sách phim theo thể loại
         public async Task<IActionResult> Category(string slug, int page = 1)
         {
+            _logger?.LogInformation("Category action called with slug={Slug}, page={Page}", slug, page);
             var moviesResponse = await _movieApiService.GetMoviesByCategoryAsync(slug, page);
+
+            if (moviesResponse == null || moviesResponse.Items == null || !moviesResponse.Items.Any())
+            {
+                _logger?.LogWarning("GetMoviesByCategoryAsync returned no results for slug={Slug}, trying GetCategoryDetailAsync...", slug);
+
+                // Try the detailed category endpoint as a fallback
+                moviesResponse = await _movieApiService.GetCategoryDetailAsync(slug, page);
+
+                if (moviesResponse == null || moviesResponse.Items == null || !moviesResponse.Items.Any())
+                {
+                    _logger?.LogWarning("GetCategoryDetailAsync also returned no results for slug={Slug}. No further fallbacks (search) will be attempted.", slug);
+                }
+                else
+                {
+                    ViewBag.FallbackSource = "categoryDetail";
+                    _logger?.LogInformation("GetCategoryDetailAsync returned {Count} items for slug={Slug}", moviesResponse.Items?.Count ?? 0, slug);
+                }
+            }
+            else
+            {
+                _logger?.LogInformation("GetMoviesByCategoryAsync returned {Count} items for slug={Slug}", moviesResponse.Items?.Count ?? 0, slug);
+            }
 
             if (moviesResponse == null)
                 return View("Error");
 
             ViewBag.CategorySlug = slug;
-            ViewData["Title"] = $"Thể loại: {slug}";
+
+            // Lấy tên thể loại từ helper tổng hợp (có dấu)
+            var categoryName = CategoryNames.GetDisplayName(slug);
+
+            // Nếu helper chưa có, thử lấy đầy đủ từ API genres (BaseController cũng tải genres vào ViewBag, nhưng tại đây gọi trực tiếp để đảm bảo)
+            try
+            {
+                var apiGenres = await _movieApiService.GetGenresAsync();
+                if (apiGenres != null && apiGenres.Any())
+                {
+                    var key = (slug ?? string.Empty).ToLowerInvariant();
+                    var candidate = apiGenres.FirstOrDefault(g => string.Equals(g.Slug, key, StringComparison.OrdinalIgnoreCase)
+                                                                 || string.Equals(g.Slug, key.Replace("phim-", ""), StringComparison.OrdinalIgnoreCase)
+                                                                 || string.Equals(g.Slug, "phim-" + key, StringComparison.OrdinalIgnoreCase));
+                    if (candidate != null && !string.IsNullOrEmpty(candidate.Name))
+                    {
+                        categoryName = candidate.Name;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore API errors here and keep fallback name
+            }
+
+            ViewBag.CategoryName = categoryName;
+            ViewData["Title"] = categoryName;
             return View("Category", moviesResponse);
         }
 
@@ -79,13 +134,57 @@ namespace WebMovie.Controllers
             string year = "",
             int limit = 20)
         {
+            _logger?.LogInformation("CategoryDetail action called with slug={Slug}, page={Page}", slug, page);
             var moviesResponse = await _movieApiService.GetCategoryDetailAsync(
                 slug, page, sort_field, sort_type, sort_lang, country, year, limit);
+
+            if (moviesResponse == null || moviesResponse.Items == null || !moviesResponse.Items.Any())
+            {
+                _logger?.LogWarning("GetCategoryDetailAsync returned no results for slug={Slug}, trying GetMoviesByCategoryAsync...", slug);
+                // Try the simpler endpoint as fallback
+                moviesResponse = await _movieApiService.GetMoviesByCategoryAsync(slug, page);
+                if (moviesResponse == null || moviesResponse.Items == null || !moviesResponse.Items.Any())
+                {
+                    _logger?.LogWarning("GetMoviesByCategoryAsync also returned no results for slug={Slug}. No further fallbacks.", slug);
+                }
+                else
+                {
+                    ViewBag.FallbackSource = "moviesByCategory";
+                    _logger?.LogInformation("GetMoviesByCategoryAsync returned {Count} items for slug={Slug}", moviesResponse.Items?.Count ?? 0, slug);
+                }
+            }
+            else
+            {
+                _logger?.LogInformation("GetCategoryDetailAsync returned {Count} items for slug={Slug}", moviesResponse.Items?.Count ?? 0, slug);
+            }
 
             if (moviesResponse == null)
                 return View("Error");
 
-            ViewData["Title"] = $"Thể loại: {slug}";
+            // Lấy tên thể loại từ helper tổng hợp (có dấu), và bổ sung bằng dữ liệu API nếu cần
+            var categoryName = CategoryNames.GetDisplayName(slug);
+            try
+            {
+                var apiGenres = await _movieApiService.GetGenresAsync();
+                if (apiGenres != null && apiGenres.Any())
+                {
+                    var key = (slug ?? string.Empty).ToLowerInvariant();
+                    var found = apiGenres.FirstOrDefault(g => string.Equals(g.Slug, key, StringComparison.OrdinalIgnoreCase)
+                                                              || string.Equals(g.Slug, key.Replace("phim-", ""), StringComparison.OrdinalIgnoreCase)
+                                                              || string.Equals(g.Slug, "phim-" + key, StringComparison.OrdinalIgnoreCase));
+                    if (found != null && !string.IsNullOrEmpty(found.Name))
+                    {
+                        categoryName = found.Name;
+                    }
+                }
+            }
+            catch
+            {
+                // ignore API errors
+            }
+
+            ViewBag.CategoryName = categoryName;
+            ViewData["Title"] = categoryName;
             ViewBag.CategorySlug = slug;
             ViewBag.Page = page;
             ViewBag.SortField = sort_field;
