@@ -61,30 +61,24 @@ namespace WebMovie.Controllers
 
 
 // ========== avata ==========
-
-[HttpPost]
-public async Task<IActionResult> UpdateAvatar(IFormFile AvatarFile)
+[HttpPost]public async Task<IActionResult> UpdateAvatar(
+    IFormFile AvatarFile,
+    [FromServices] CloudinaryService cloudinaryService)
 {
     var user = await _userManager.GetUserAsync(User);
 
     if (AvatarFile != null && AvatarFile.Length > 0)
     {
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(AvatarFile.FileName)}";
-        var path = Path.Combine("wwwroot/avatars", fileName);
-
-        using (var stream = new FileStream(path, FileMode.Create))
+        string url = await cloudinaryService.UploadImageAsync(AvatarFile);
+        if (url != null)
         {
-            await AvatarFile.CopyToAsync(stream);
+            user.AvatarUrl = url;
+            await _userManager.UpdateAsync(user);
         }
-
-        user.AvatarUrl = "/avatars/" + fileName;
-
-        await _userManager.UpdateAsync(user);
     }
 
     return RedirectToAction("Profile");
 }
-
 
 
         // ========== LOGIN ==========
