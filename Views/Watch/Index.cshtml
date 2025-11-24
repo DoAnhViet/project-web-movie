@@ -268,6 +268,13 @@
         word-wrap: break-word;
         font-size: 0.95rem;
     }
+    .comment-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
     .comment-actions {
         margin-top: 12px;
         padding-top: 12px;
@@ -554,13 +561,20 @@ var embedUrl = element.getAttribute('data-embed');
                 var timeAgo = getTimeAgo(commentDate);
                 var canDelete = Boolean(comment.canDelete);
                 var displayName = comment.userDisplayName ? escapeHtml(comment.userDisplayName) : 'Người dùng';
+// Xử lý avatar
+var avatar = comment.avatarUrl
+    ? `<img class="comment-avatar" src="${comment.avatarUrl}" alt="avatar">`
+    : `<img class="comment-avatar" 
+         src="https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=64&background=e94560&color=ffffff&bold=true"
+         alt="avatar">`;
 
                 html += `
                     <div class="comment-item" data-comment-id="${comment.id}">
                         <div class="comment-header">
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-user-circle fa-2x text-primary-custom me-2"></i>
-                                <div>
+                                  ${avatar}
+                             <div class="ms-2">
+                                
                                     <div class="comment-author">${displayName}</div>
                                     <div class="comment-date">${timeAgo}</div>
                                 </div>
