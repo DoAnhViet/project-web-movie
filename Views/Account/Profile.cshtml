@@ -29,6 +29,38 @@
 </form>
 
         <h2 class="profile-name">@Model.FullName</h2>
+<div class="text-center mt-3">
+    <button type="button" id="btnShowNameForm" class="btn btn-warning">
+        <i class="fas fa-edit"></i> Đổi tên
+    </button>
+</div>
+
+
+<form id="nameForm" asp-action="UpdateName" asp-controller="Account"
+      method="post" class="change-name-box mt-3 p-3" style="display:none;">
+
+    <h5 class="mb-3">
+        <i class="fas fa-user-edit me-2"></i>Đổi tên hiển thị
+    </h5>
+
+    <div class="input-group mb-2">
+        <span class="input-group-text">
+            <i class="fas fa-user"></i>
+        </span>
+        <input type="text"
+               name="fullName"
+               class="form-control"
+               placeholder="Nhập tên mới..."
+               value="@Model.FullName"
+               required />
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">
+        <i class="fas fa-save"></i> Lưu tên mới
+    </button>
+</form>
+
+
         <p class="profile-email">
             <i class="fas fa-envelope"></i> @Model.Email
         </p>
@@ -68,5 +100,13 @@
 <script>
     document.getElementById("btnChangeAvatar").addEventListener("click", () => {
         document.getElementById("avatarForm").style.display = "block";
+    });
+</script>
+
+
+<script>
+    document.getElementById("btnShowNameForm").addEventListener("click", () => {
+        const form = document.getElementById("nameForm");
+        form.style.display = form.style.display === "none" ? "block" : "none";
     });
 </script>
