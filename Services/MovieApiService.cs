@@ -17,7 +17,7 @@ namespace WebMovie.Services
             _httpClient.BaseAddress = new Uri(BaseUrl);
         }
 
-        // Lấy danh sách phim mới cập nhật
+        // Lấy danh sách phim mới cập nhật (cho user thường - tự động filter phim đã ẩn)
         public async Task<MovieListResponse?> GetNewMoviesAsync(int page = 1, int limit = 12)
         {
             try
@@ -38,12 +38,84 @@ namespace WebMovie.Services
                 });
                 
                 ApplyCustomTitles(result);
+                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching movies: {ex.Message}");
                 return null;
+            }
+        }
+
+        // Lấy danh sách phim mới cập nhật (cho admin - không filter phim đã ẩn)
+        public async Task<MovieListResponse?> GetNewMoviesForAdminAsync(int page = 1, int limit = 12)
+        {
+            try
+            {
+                var query = $"page={page}";
+                if (limit > 0)
+                {
+                    query += $"&limit={limit}";
+                }
+
+                var response = await _httpClient.GetAsync($"/danh-sach/phim-moi-cap-nhat?{query}");
+                response.EnsureSuccessStatusCode();
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                ApplyCustomTitles(result);
+                // Không filter phim đã ẩn cho admin
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching movies: {ex.Message}");
+                return null;
+            }
+        }
+
+        // Lấy tất cả phim (cho admin - không filter phim đã ẩn)
+        public async Task<MovieListResponse?> GetAllMoviesForAdminAsync(int page = 1, int limit = 20)
+        {
+            try
+            {
+                var query = $"page={page}";
+                if (limit > 0)
+                {
+                    query += $"&limit={limit}";
+                }
+
+                // Thử endpoint /danh-sach/phim trước, nếu không được thì dùng /danh-sach
+                var response = await _httpClient.GetAsync($"/danh-sach/phim?{query}");
+                
+                // Nếu endpoint /danh-sach/phim không tồn tại, thử /danh-sach
+                if (!response.IsSuccessStatusCode)
+                {
+                    response = await _httpClient.GetAsync($"/danh-sach?{query}");
+                }
+                
+                response.EnsureSuccessStatusCode();
+                
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<MovieListResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                ApplyCustomTitles(result);
+                // Không filter phim đã ẩn cho admin
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching all movies: {ex.Message}");
+                // Fallback về phim mới cập nhật nếu endpoint không tồn tại
+                return await GetNewMoviesForAdminAsync(page, limit);
             }
         }
 
@@ -62,6 +134,11 @@ namespace WebMovie.Services
                 });
                 
                 ApplyCustomTitles(result);
+                // Check if movie is hidden - return null if hidden
+                if (IsMovieHidden(slug))
+                {
+                    return null;
+                }
                 return result;
             }
             catch (Exception ex)
@@ -102,13 +179,17 @@ namespace WebMovie.Services
                         item.ThumbUrl = cdn + "/" + item.ThumbUrl.TrimStart('/');
                 }
 
-                return new MovieListResponse
+                var result = new MovieListResponse
                 {
                     Status = true,
                     Message = searchResult.Message,
                     Items = items,
                     Pagination = searchResult.Data?.Pagination ?? searchResult.Pagination
                 };
+                
+                ApplyCustomTitles(result);
+                FilterHiddenMovies(result);
+                return result;
             }
             catch (Exception ex)
             {
@@ -274,6 +355,8 @@ namespace WebMovie.Services
                     PropertyNameCaseInsensitive = true
                 });
                 
+                ApplyCustomTitles(result);
+                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
@@ -347,6 +430,7 @@ namespace WebMovie.Services
                 }
 
                 ApplyCustomTitles(result);
+                FilterHiddenMovies(result);
                 return result;
             }
             catch (Exception ex)
@@ -509,6 +593,32 @@ namespace WebMovie.Services
                     detail.Movie.Content = custom.CustomDescription;
                 }
             }
+        }
+
+        // Filter out hidden movies from list (for non-admin users)
+        public void FilterHiddenMovies(MovieListResponse? list)
+        {
+            if (list == null || list.Items == null || _db == null) return;
+
+            var hiddenSlugs = _db.CustomMovieTitles
+                .Where(c => c.IsHidden)
+                .Select(c => c.MovieSlug)
+                .ToHashSet();
+
+            if (hiddenSlugs.Any())
+            {
+                list.Items = list.Items
+                    .Where(item => !string.IsNullOrEmpty(item.Slug) && !hiddenSlugs.Contains(item.Slug))
+                    .ToList();
+            }
+        }
+
+        // Check if movie is hidden
+        public bool IsMovieHidden(string slug)
+        {
+            if (string.IsNullOrEmpty(slug) || _db == null) return false;
+            return _db.CustomMovieTitles
+                .Any(c => c.MovieSlug == slug && c.IsHidden);
         }
         #endregion
     }

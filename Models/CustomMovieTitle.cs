@@ -46,5 +46,10 @@ namespace WebMovie.Models
         /// Admin ID đã cập nhật
         /// </summary>
         public string? UpdatedBy { get; set; }
+
+        /// <summary>
+        /// Ẩn phim khỏi danh sách hiển thị cho user
+        /// </summary>
+        public bool IsHidden { get; set; } = false;
     }
 }

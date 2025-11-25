@@ -263,7 +263,7 @@ namespace WebMovie.Migrations
 
                     b.HasIndex("MovieSlug", "CreatedAt");
 
-                    b.ToTable("Comments");
+                    b.ToTable("Comments", (string)null);
                 });
 
             modelBuilder.Entity("WebMovie.Models.CustomMovieTitle", b =>
@@ -302,7 +302,7 @@ namespace WebMovie.Migrations
                     b.HasIndex("MovieSlug")
                         .IsUnique();
 
-                    b.ToTable("CustomMovieTitles");
+                    b.ToTable("CustomMovieTitles", (string)null);
                 });
 
             modelBuilder.Entity("WebMovie.Models.FavoriteMovie", b =>
@@ -351,7 +351,7 @@ namespace WebMovie.Migrations
                     b.HasIndex("UserId", "MovieSlug")
                         .IsUnique();
 
-                    b.ToTable("FavoriteMovies");
+                    b.ToTable("FavoriteMovies", (string)null);
                 });
 
             modelBuilder.Entity("WebMovie.Models.MovieComment", b =>
@@ -390,7 +390,7 @@ namespace WebMovie.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("MovieComments");
+                    b.ToTable("MovieComments", (string)null);
                 });
 
             modelBuilder.Entity("WebMovie.Models.Report", b =>
@@ -453,7 +453,7 @@ namespace WebMovie.Migrations
 
                     b.HasIndex("Status", "CreatedAt");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("WebMovie.Models.WatchHistory", b =>
@@ -507,7 +507,7 @@ namespace WebMovie.Migrations
 
                     b.HasIndex("UserId", "MovieSlug");
 
-                    b.ToTable("WatchHistories");
+                    b.ToTable("WatchHistories", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
