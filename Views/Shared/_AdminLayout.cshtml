@@ -122,21 +122,18 @@
             <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "ManageMovies" ? "active" : "")" 
                href="/Admin/ManageMovies">
                 <i class="fas fa-film"></i> Quản lý phim
-            </a>
-            
-            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Titles" || ViewContext.RouteData.Values["Action"]?.ToString() == "EditTitle" ? "active" : "")" 
-               href="/Admin/Titles">
-                <i class="fas fa-heading"></i> Tiêu đề tùy chỉnh
-            </a>
-            
+            </a>            
             <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString().Contains("User") == true ? "active" : "")" 
                href="/Admin/ManageUsers">
                 <i class="fas fa-users"></i> Quản lý người dùng
             </a>
             
-            <a class="nav-link" href="/Admin/CreateUser">
-                <i class="fas fa-user-plus"></i> Thêm người dùng
+            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString().Contains("Comment") == true ? "active" : "")" 
+               href="/Admin/ManageComments">
+                <i class="fas fa-comments"></i> Quản lý bình luận
             </a>
+            
+            
             
             <hr style="border-color: #2a2a2a; margin: 20px 10px;">
             

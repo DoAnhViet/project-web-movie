@@ -1,0 +1,314 @@
+@model WebMovie.Models.MovieDetail
+
+@{
+    ViewData["Title"] = Model?.Name ?? "Chi tiết phim";
+    ViewData["Breadcrumb"] = "Chi tiết phim";
+    Layout = "_AdminLayout";
+    var isHidden = (bool?)ViewBag.IsHidden ?? false;
+}
+
+<style>
+    .movie-detail-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+
+    .movie-poster {
+        width: 100%;
+        max-width: 250px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        object-fit: cover;
+    }
+
+    .detail-section {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+
+    .detail-section:hover {
+        border-color: #000;
+    }
+
+    .detail-label {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .detail-value {
+        color: #1f2937;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .info-item {
+        padding: 15px;
+        background: #f9fafb;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+
+    .info-item .label {
+        font-weight: 600;
+        color: #667eea;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .info-item .value {
+        margin-top: 8px;
+        font-size: 0.95rem;
+        color: #374151;
+    }
+
+    .episodes-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+
+    .episode-badge {
+        padding: 10px 12px;
+        background: #e0e7ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .episode-badge:hover {
+        background: #c7d2fe;
+        transform: translateY(-2px);
+    }
+
+    .hidden-badge {
+        background: #fee2e2;
+        border: 2px solid #fca5a5;
+        padding: 8px 12px;
+        border-radius: 6px;
+        color: #991b1b;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .action-buttons .btn {
+        flex: 1;
+        min-width: 150px;
+    }
+</style>
+
+<div class="movie-detail-header">
+    <div class="row align-items-center">
+        <div class="col-md-3 mb-3 mb-md-0 text-center">
+            <img src="@Model?.PosterUrl" alt="@Model?.Name" class="movie-poster">
+        </div>
+        <div class="col-md-9">
+            <h1 class="mb-2">@Model?.Name</h1>
+            @if (!string.IsNullOrEmpty(Model?.OriginName))
+            {
+                <p class="fs-5 mb-3">@Model.OriginName</p>
+            }
+            @if (isHidden)
+            {
+                <div class="hidden-badge mb-3">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>Phim này đã bị ẩn khỏi website</span>
+                </div>
+            }
+            <div class="action-buttons">
+                <a href="@Url.Action("EditTitle", new { slug = Model?.Slug })" class="btn btn-warning">
+                    <i class="fas fa-edit me-2"></i>Sửa Tiêu Đề
+                </a>
+                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#statusModal">
+                    <i class="fas fa-@(isHidden ? "eye" : "eye-slash") me-2"></i>@(isHidden ? "Hiển Thị" : "Ẩn Phim")
+                </button>
+                <a href="@Url.Action("ManageMovies")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Quay Lại
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thông tin chi tiết -->
+<div class="detail-section">
+    <h3 class="mb-4">
+        <i class="fas fa-info-circle me-2"></i>Thông Tin Cơ Bản
+    </h3>
+    <div class="info-grid">
+        @if (Model?.Year > 0)
+        {
+            <div class="info-item">
+                <div class="label">Năm Phát Hành</div>
+                <div class="value">@Model.Year</div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Quality))
+        {
+            <div class="info-item">
+                <div class="label">Chất Lượng</div>
+                <div class="value"><span class="badge bg-warning text-dark">@Model.Quality</span></div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Lang))
+        {
+            <div class="info-item">
+                <div class="label">Ngôn Ngữ</div>
+                <div class="value">@Model.Lang</div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Type))
+        {
+            <div class="info-item">
+                <div class="label">Loại</div>
+                <div class="value">@Model.Type</div>
+            </div>
+        }
+        @if (Model?.Country != null && Model.Country.Any())
+        {
+            <div class="info-item">
+                <div class="label">Quốc Gia</div>
+                <div class="value">@string.Join(", ", Model.Country.Select(c => c.Name))</div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Status))
+        {
+            <div class="info-item">
+                <div class="label">Trạng Thái</div>
+                <div class="value">@Model.Status</div>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Slug))
+        {
+            <div class="info-item">
+                <div class="label">Slug</div>
+                <div class="value" style="font-family: monospace; font-size: 0.85rem;">@Model.Slug</div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Nội dung -->
+@if (!string.IsNullOrEmpty(Model?.Content))
+{
+    <div class="detail-section">
+        <h3 class="mb-3">
+            <i class="fas fa-align-left me-2"></i>Nội Dung
+        </h3>
+        <div class="detail-value">
+            @Html.Raw(Model.Content)
+        </div>
+    </div>
+}
+
+<!-- Thể Loại -->
+@if (Model?.Category != null && Model.Category.Any())
+{
+    <div class="detail-section">
+        <h3 class="mb-3">
+            <i class="fas fa-tags me-2"></i>Thể Loại
+        </h3>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var cat in Model.Category)
+            {
+                <span class="badge bg-info">@cat.Name</span>
+            }
+        </div>
+    </div>
+}
+
+<!-- Diễn Viên -->
+@if (Model?.Actor != null && Model.Actor.Any())
+{
+    <div class="detail-section">
+        <h3 class="mb-3">
+            <i class="fas fa-users me-2"></i>Diễn Viên
+        </h3>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var actor in Model.Actor.Take(20))
+            {
+                <span class="badge bg-secondary">@actor</span>
+            }
+            @if (Model.Actor.Count > 20)
+            {
+                <span class="badge bg-light text-dark">... +@(Model.Actor.Count - 20) người khác</span>
+            }
+        </div>
+    </div>
+}
+
+<!-- Modal xác nhận ẩn/hiển thị -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    @(isHidden ? "Hiển thị" : "Ẩn") phim
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Bạn có chắc chắn muốn @(isHidden ? "hiển thị" : "ẩn") phim <strong>@Model?.Name</strong> khỏi website?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn @(isHidden ? "btn-success" : "btn-danger")" onclick="toggleMovieStatus('@Model?.Slug')">
+                    @(isHidden ? "Hiển Thị" : "Ẩn Phim")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleMovieStatus(slug) {
+        fetch('@Url.Action("ToggleHideMovie")', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ slug: slug })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Lỗi: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Lỗi khi cập nhật trạng thái phim: ' + error);
+        });
+    }
+</script>

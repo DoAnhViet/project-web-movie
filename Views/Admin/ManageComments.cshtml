@@ -1,0 +1,503 @@
+@model List<MovieComment>
+
+@{
+    ViewData["Title"] = "Quản lý bình luận";
+    ViewData["Breadcrumb"] = "Quản lý bình luận";
+    Layout = "_AdminLayout";
+    var currentPage = (int?)ViewBag.CurrentPage ?? 1;
+    var totalPages = (int?)ViewBag.TotalPages ?? 1;
+    var totalComments = (int?)ViewBag.TotalComments ?? 0;
+    var filterMovie = (string?)ViewBag.FilterMovie;
+    var searchQuery = (string?)ViewBag.SearchQuery;
+    var pageSize = (int?)ViewBag.PageSize ?? 20;
+}
+
+<style>
+    .page-header {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .page-header:hover {
+        border-color: #000;
+    }
+    .comment-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .comment-table:hover {
+        border-color: #000;
+    }
+    .comment-table thead {
+        background: #f9fafb;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    .comment-table thead th {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 15px;
+    }
+    .comment-table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+    .comment-preview {
+        max-width: 300px;
+        word-break: break-word;
+    }
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .filter-card:hover {
+        border-color: #000;
+    }
+    .stat-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        background: #667eea;
+        color: white;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-comments text-primary me-2"></i>
+                Quản lý bình luận
+            </h2>
+            <p class="text-muted mb-0">Quản lý và kiểm duyệt bình luận người dùng</p>
+        </div>
+        <button class="btn btn-info" id="loadStatsBtn">
+            <i class="fas fa-chart-bar me-2"></i>Thống kê
+        </button>
+    </div>
+</div>
+
+<!-- Thống kê nhanh -->
+<div class="row mb-4" id="statsRow" style="display: none;">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Hôm Nay</h6>
+                <h3 class="text-primary mb-0" id="commentsToday">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Tháng Này</h6>
+                <h3 class="text-success mb-0" id="commentsThisMonth">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Tổng Cộng</h6>
+                <h3 class="text-warning mb-0" id="totalAllComments">-</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Trang Này</h6>
+                <h3 class="text-danger mb-0" id="pageComments">@Model.Count</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc -->
+<div class="filter-card">
+    <form method="get" class="mb-3">
+        <div class="row">
+            <div class="col-md-8">
+                <label for="filterMovie" class="form-label mb-2">Lọc theo phim:</label>
+                <input type="text" name="filterMovie" id="filterMovie" class="form-control" 
+                       placeholder="Nhập tên hoặc slug phim..." value="@filterMovie">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label mb-2">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="fas fa-search me-1"></i> Lọc
+                    </button>
+                    <a href="@Url.Action("ManageComments")" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i> Xóa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+    
+    <hr class="my-3">
+    
+    <div class="input-group position-relative">
+        <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm nội dung bình luận... (gõ để tìm ngay)">
+        <button class="btn btn-outline-primary" type="button" id="clearSearchBtn" style="display: none;">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <!-- Kết quả tìm kiếm real-time -->
+    <div id="searchResultsContainer" style="display: none; margin-top: 15px; max-height: 400px; overflow-y: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <div id="searchResults" class="p-3">
+            <div class="text-center text-muted">
+                <i class="fas fa-search me-2"></i>Đang tìm kiếm...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Danh sách bình luận -->
+@if (Model.Count > 0)
+{
+    <div class="comment-table">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 5%">#</th>
+                    <th style="width: 20%">
+                        <i class="fas fa-user me-1"></i>Người Dùng
+                    </th>
+                    <th style="width: 20%">
+                        <i class="fas fa-film me-1"></i>Phim
+                    </th>
+                    <th style="width: 30%">
+                        <i class="fas fa-comment me-1"></i>Nội Dung
+                    </th>
+                    <th style="width: 15%">
+                        <i class="fas fa-calendar me-1"></i>Ngày Tạo
+                    </th>
+                    <th style="width: 10%" class="text-center">
+                        <i class="fas fa-cog me-1"></i>Thao Tác
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int index = (currentPage - 1) * pageSize + 1;
+                }
+                @foreach (var comment in Model)
+                {
+                    <tr>
+                        <td><strong>@(index++)</strong></td>
+                        <td>
+                            @if (comment.User != null)
+                            {
+                                <div>
+                                    <strong class="d-block">@comment.User.FullName</strong>
+                                    <small class="text-muted">@comment.User.UserName</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="fas fa-exclamation-circle me-1"></i>User bị xóa</span>
+                            }
+                        </td>
+                        <td>
+                            <a href="@Url.Action("Detail", "Movie", new { slug = comment.MovieSlug })" 
+                               target="_blank" class="text-decoration-none">
+                                @if (comment.MovieTitle.Length > 25)
+                                {
+                                    @comment.MovieTitle.Substring(0, 25)<text>...</text>
+                                }
+                                else
+                                {
+                                    @comment.MovieTitle
+                                }
+                            </a>
+                        </td>
+                        <td>
+                            <div class="comment-preview">
+                                @if (comment.Content.Length > 80)
+                                {
+                                    <span title="@comment.Content">
+                                        @comment.Content.Substring(0, 80)<text>...</text>
+                                    </span>
+                                }
+                                else
+                                {
+                                    @comment.Content
+                                }
+                                @if (comment.UpdatedAt.HasValue)
+                                {
+                                    <br>
+                                    <small class="text-warning">
+                                        <i class="fas fa-edit me-1"></i>Sửa: @comment.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                @comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </td>
+                        <td class="text-center">
+                            <a href="@Url.Action("CommentDetail", new { id = comment.Id })" 
+                               class="btn btn-sm btn-info" title="Xem chi tiết">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button class="btn btn-sm btn-danger deleteCommentBtn" data-id="@comment.Id" 
+                                    title="Xóa bình luận">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+        <!-- Phân trang -->
+        @if (totalPages > 1)
+        {
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    @if (currentPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("ManageComments", new { page = 1, filterMovie = filterMovie })">
+                                <i class="fas fa-step-backward"></i> Đầu
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("ManageComments", new { page = currentPage - 1, filterMovie = filterMovie })">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </a>
+                        </li>
+                    }
+
+                    @{
+                        int start = Math.Max(1, currentPage - 2);
+                        int end = Math.Min(totalPages, currentPage + 2);
+                    }
+
+                    @if (start > 1)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+
+                    @for (int i = start; i <= end; i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("ManageComments", new { page = i, filterMovie = filterMovie })">
+                                @i
+                            </a>
+                        </li>
+                    }
+
+                    @if (end < totalPages)
+                    {
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    }
+
+                    @if (currentPage < totalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("ManageComments", new { page = currentPage + 1, filterMovie = filterMovie })">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("ManageComments", new { page = totalPages, filterMovie = filterMovie })">
+                                Cuối <i class="fas fa-step-forward"></i>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>Không có bình luận nào.
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        // Tải thống kê
+        document.getElementById('loadStatsBtn').addEventListener('click', function() {
+            const statsRow = document.getElementById('statsRow');
+            
+            fetch('@Url.Action("GetCommentStats")')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('commentsToday').textContent = data.commentsToday;
+                    document.getElementById('commentsThisMonth').textContent = data.commentsThisMonth;
+                    document.getElementById('totalAllComments').textContent = data.totalComments;
+                    
+                    if (statsRow.style.display === 'none') {
+                        statsRow.style.display = 'flex';
+                        this.classList.add('active');
+                    } else {
+                        statsRow.style.display = 'none';
+                        this.classList.remove('active');
+                    }
+                })
+                .catch(error => {
+                    alert('Lỗi khi tải thống kê: ' + error);
+                });
+        });
+
+        // Xóa bình luận
+        document.querySelectorAll('.deleteCommentBtn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const commentId = this.dataset.id;
+                
+                if (confirm('Bạn chắc chắn muốn xóa bình luận này?')) {
+                    fetch('@Url.Action("DeleteComment")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id: parseInt(commentId) })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            location.reload();
+                        } else {
+                            alert('Lỗi: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Lỗi khi xóa: ' + error);
+                    });
+                }
+            });
+        });
+
+        // Search real-time
+        const searchInput = document.getElementById('searchInput');
+        const searchResultsContainer = document.getElementById('searchResultsContainer');
+        const searchResults = document.getElementById('searchResults');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length === 0) {
+                searchResultsContainer.style.display = 'none';
+                clearSearchBtn.style.display = 'none';
+                return;
+            }
+
+            clearSearchBtn.style.display = 'block';
+            searchResultsContainer.style.display = 'block';
+            searchResults.innerHTML = '<div class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Đang tìm kiếm...</div>';
+
+            // Delay 300ms để tránh quá nhiều request
+            searchTimeout = setTimeout(() => {
+                fetch('@Url.Action("SearchCommentsRealTime")?q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.comments.length > 0) {
+                            let html = '';
+                            data.comments.forEach(comment => {
+                                html += `
+                                    <div class="d-flex justify-content-between align-items-start p-3 border-bottom" style="cursor: pointer;">
+                                        <div class="flex-grow-1" onclick="window.location.href='@Url.Action("CommentDetail")?id=${comment.id}'">
+                                            <strong class="text-dark">${escapeHtml(comment.movieTitle)}</strong>
+                                            <p class="small text-muted mb-1">Người dùng: ${escapeHtml(comment.userName)}</p>
+                                            <p class="small text-secondary mb-1">${escapeHtml(comment.content)}</p>
+                                            <small class="text-muted">${comment.createdAt}</small>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="quickDeleteComment(${comment.id}, event)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                `;
+                            });
+                            searchResults.innerHTML = html;
+                        } else {
+                            searchResults.innerHTML = '<div class="text-center text-muted p-3"><i class="fas fa-inbox me-2"></i>Không tìm thấy bình luận nào</div>';
+                        }
+                    })
+                    .catch(error => {
+                        searchResults.innerHTML = '<div class="text-center text-danger p-3"><i class="fas fa-exclamation-circle me-2"></i>Lỗi khi tìm kiếm</div>';
+                    });
+            }, 300);
+        });
+
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            searchResultsContainer.style.display = 'none';
+            clearSearchBtn.style.display = 'none';
+            searchInput.focus();
+        });
+
+        // Hàm để escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Hàm xóa nhanh từ kết quả tìm kiếm
+        function quickDeleteComment(id, event) {
+            event.stopPropagation();
+            if (confirm('Bạn có chắc muốn xóa bình luận này?')) {
+                fetch('@Url.Action("DeleteComment")?id=' + id, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Cập nhật lại kết quả tìm kiếm
+                            searchInput.dispatchEvent(new Event('input'));
+                        } else {
+                            alert('Lỗi: ' + data.message);
+                        }
+                    });
+            }
+        }
+
+        // Search cũ (fallback)
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+    </script>
+}

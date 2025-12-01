@@ -1,0 +1,348 @@
+@model MovieComment
+
+@{
+    ViewData["Title"] = "Chi tiết bình luận";
+    ViewData["Breadcrumb"] = "Chi tiết bình luận";
+    Layout = "_AdminLayout";
+}
+
+<style>
+    .page-header {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .page-header:hover {
+        border-color: #000;
+    }
+    .detail-section {
+        background: white;
+        padding: 25px 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 2px solid #e5e7eb;
+    }
+    .detail-section:hover {
+        border-color: #000;
+    }
+    .info-block {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 25px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .info-block:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    .info-item {
+        flex: 1;
+    }
+    .info-label {
+        font-weight: 700;
+        color: #374151;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    .info-value {
+        color: #111827;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    .info-value a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    .info-value a:hover {
+        color: #764ba2;
+        text-decoration: underline;
+    }
+    .comment-content {
+        background: #f9fafb;
+        border-left: 4px solid #667eea;
+        padding: 20px 25px;
+        border-radius: 8px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.95rem;
+        line-height: 1.8;
+    }
+    .form-section {
+        margin-bottom: 25px;
+    }
+    .form-section label {
+        font-weight: 700;
+        color: #374151;
+        margin-bottom: 10px;
+        display: block;
+    }
+    .char-counter {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-top: 5px;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .sidebar-info {
+        background: #f9fafb;
+        padding: 20px 25px;
+        border-radius: 12px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-1">
+                <i class="fas fa-comment text-primary me-2"></i>
+                Chi Tiết Bình Luận
+            </h2>
+            <p class="text-muted mb-0">Xem và quản lý bình luận chi tiết</p>
+        </div>
+        <a href="@Url.Action("ManageComments")" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Quay Lại
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Thông tin bình luận -->
+        <div class="detail-section">
+            <div class="info-block">
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-user me-1"></i>Người Dùng
+                    </div>
+                    <div class="info-value">
+                        @if (Model.User != null)
+                        {
+                            <div>
+                                <strong>@Model.User.FullName</strong>
+                                <br>
+                                <small class="text-muted">@Model.User.UserName</small>
+                                <br>
+                                <small class="text-muted">@Model.User.Email</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-danger">
+                                <i class="fas fa-exclamation-circle me-1"></i>Người dùng bị xóa
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-film me-1"></i>Phim
+                    </div>
+                    <div class="info-value">
+                        <a href="@Url.Action("Detail", "Movie", new { slug = Model.MovieSlug })" target="_blank">
+                            @Model.MovieTitle
+                        </a>
+                        <br>
+                        <small class="text-muted">@Model.MovieSlug</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nội dung bình luận -->
+            <div style="margin-bottom: 25px;">
+                <div class="info-label">
+                    <i class="fas fa-comment-dots me-1"></i>Nội Dung Bình Luận
+                </div>
+                <div class="comment-content">
+                    @Html.Raw(System.Net.WebUtility.HtmlEncode(Model.Content).Replace("\n", "<br>"))
+                </div>
+            </div>
+
+            <!-- Thời gian -->
+            <div class="info-block">
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-calendar-alt me-1"></i>Ngày Tạo
+                    </div>
+                    <div class="info-value">
+                        @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">
+                        <i class="fas fa-history me-1"></i>Lần Sửa Cuối
+                    </div>
+                    <div class="info-value">
+                        @if (Model.UpdatedAt.HasValue)
+                        {
+                            @Model.UpdatedAt?.ToString("dd/MM/yyyy HH:mm:ss")
+                        }
+                        else
+                        {
+                            <span class="text-muted">Chưa cập nhật</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chỉnh sửa bình luận -->
+        <div class="detail-section">
+            <div class="form-section">
+                <label for="editContent">
+                    <i class="fas fa-edit me-2"></i>Chỉnh Sửa Nội Dung
+                </label>
+                <textarea id="editContent" class="form-control" rows="6" style="resize: vertical;">@Model.Content</textarea>
+                <div class="char-counter">
+                    Tối đa 1000 ký tự. Hiện tại: <strong id="charCount">0</strong>/1000
+                </div>
+            </div>
+
+            <!-- Nút hành động -->
+            <div class="action-buttons">
+                <button id="saveBtn" class="btn btn-success">
+                    <i class="fas fa-save me-2"></i>Lưu Thay Đổi
+                </button>
+                <button id="deleteBtn" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Xóa Bình Luận
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+        <div class="detail-section">
+            <div class="sidebar-info">
+                <div style="margin-bottom: 15px;">
+                    <div class="info-label mb-2">Trạng Thái</div>
+                    <span class="status-badge bg-success text-white">
+                        <i class="fas fa-check me-1"></i>Đang Hiển Thị
+                    </span>
+                </div>
+
+                <div style="padding: 15px 0; border-top: 1px solid #e5e7eb;">
+                    <div class="info-label mb-2">ID Bình Luận</div>
+                    <div class="info-value text-break">
+                        <code>@Model.Id</code>
+                    </div>
+                </div>
+
+                <div style="padding: 15px 0; border-top: 1px solid #e5e7eb;">
+                    <div class="info-label mb-2">User ID</div>
+                    <div class="info-value text-break">
+                        <code style="font-size: 0.85rem;">@Model.UserId</code>
+                    </div>
+                </div>
+
+                <div style="padding: 15px 0; border-top: 1px solid #e5e7eb; border-bottom: none;">
+                    <div class="info-label mb-2">Độ Dài</div>
+                    <div class="info-value">
+                        @Model.Content.Length ký tự
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const commentId = @Model.Id;
+        const editContentArea = document.getElementById('editContent');
+        const charCountSpan = document.getElementById('charCount');
+        
+        // Cập nhật đếm ký tự
+        editContentArea.addEventListener('input', function() {
+            charCountSpan.textContent = this.value.length;
+            if (this.value.length > 1000) {
+                this.value = this.value.substring(0, 1000);
+                charCountSpan.textContent = 1000;
+            }
+        });
+        
+        // Khởi tạo đếm ký tự
+        charCountSpan.textContent = editContentArea.value.length;
+        
+        // Lưu thay đổi
+        document.getElementById('saveBtn').addEventListener('click', function() {
+            const content = editContentArea.value.trim();
+            
+            if (!content) {
+                alert('Nội dung không thể trống!');
+                return;
+            }
+            
+            if (content.length > 1000) {
+                alert('Nội dung không thể vượt quá 1000 ký tự!');
+                return;
+            }
+            
+            if (!confirm('Lưu thay đổi?')) return;
+            
+            fetch('@Url.Action("EditComment")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: commentId,
+                    content: content
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Lỗi: ' + error);
+            });
+        });
+        
+        // Xóa bình luận
+        document.getElementById('deleteBtn').addEventListener('click', function() {
+            if (!confirm('Bạn chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác!')) {
+                return;
+            }
+            
+            fetch('@Url.Action("DeleteComment")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: commentId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    window.location.href = '@Url.Action("ManageComments")';
+                }
+            })
+            .catch(error => {
+                alert('Lỗi: ' + error);
+            });
+        });
+    </script>
+}

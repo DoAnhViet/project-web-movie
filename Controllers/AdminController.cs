@@ -15,17 +15,20 @@ namespace WebMovie.Controllers
         private readonly ApplicationDbContext _db;
         private readonly MovieApiService _movieApiService;
         private readonly WatchAnalyticsService _watchAnalyticsService;
+        private readonly CommentService _commentService;
 
         public AdminController(
             UserManager<ApplicationUser> userManager,
             ApplicationDbContext db,
             MovieApiService movieApiService,
-            WatchAnalyticsService watchAnalyticsService)
+            WatchAnalyticsService watchAnalyticsService,
+            CommentService commentService)
         {
             _userManager = userManager;
             _db = db;
             _movieApiService = movieApiService;
             _watchAnalyticsService = watchAnalyticsService;
+            _commentService = commentService;
         }
 
         public async Task<IActionResult> Index()
@@ -128,26 +131,141 @@ namespace WebMovie.Controllers
         }
 
         // Manage movies (fetch from API and allow editing title)
-        // Manage movies (fetch from API and allow editing title)
-        public async Task<IActionResult> ManageMovies(int page = 1)
+        public async Task<IActionResult> ManageMovies(int page = 1, string? search = null, bool showHidden = false)
         {
-            // Dùng method lấy tất cả phim cho admin (không filter phim đã ẩn)
-            // Tăng limit lên 20 để hiển thị nhiều phim hơn
-            var response = await _movieApiService.GetAllMoviesForAdminAsync(page, 20);
-            var items = response?.Items ?? new List<WebMovie.Models.MovieItem>();
-            
             // Lấy danh sách phim đã bị ẩn
             var hiddenMovieSlugs = await _db.CustomMovieTitles
                 .Where(c => c.IsHidden)
                 .Select(c => c.MovieSlug)
                 .ToListAsync();
             
+            List<WebMovie.Models.MovieItem> items = new();
+            int totalPages = 1;
+            int totalItems = 0;
+            
+            // Nếu xem phim bị ẩn, cần fetch tất cả pages để tìm phim ẩn
+            if (showHidden && hiddenMovieSlugs.Any())
+            {
+                // Fetch các trang để tìm phim ẩn
+                int currentPage = 1;
+                int maxPages = 10; // Giới hạn để tránh fetch quá nhiều
+                var allMovies = new List<WebMovie.Models.MovieItem>();
+                
+                while (currentPage <= maxPages)
+                {
+                    var response = await _movieApiService.GetAllMoviesForAdminAsync(currentPage, 20);
+                    if (response?.Items == null || !response.Items.Any())
+                        break;
+                        
+                    allMovies.AddRange(response.Items);
+                    totalItems = response?.Pagination?.TotalItems ?? 0;
+                    totalPages = response?.Pagination?.TotalPages ?? 1;
+                    
+                    if (currentPage >= totalPages)
+                        break;
+                        
+                    currentPage++;
+                }
+                
+                items = allMovies.Where(m => hiddenMovieSlugs.Contains(m.Slug)).ToList();
+            }
+            else
+            {
+                // Xem phim thường: chỉ fetch một trang
+                var response = await _movieApiService.GetAllMoviesForAdminAsync(page, 20);
+                items = response?.Items ?? new List<WebMovie.Models.MovieItem>();
+                totalPages = response?.Pagination?.TotalPages ?? 1;
+                totalItems = response?.Pagination?.TotalItems ?? 0;
+                
+                // Mặc định: không hiển thị phim bị ẩn
+                items = items.Where(m => !hiddenMovieSlugs.Contains(m.Slug)).ToList();
+            }
+            
+            // Lọc theo tên tìm kiếm nếu có
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower().Trim();
+                items = items
+                    .Where(m => (m.Name ?? "").ToLower().Contains(searchLower) || 
+                                (m.OriginName ?? "").ToLower().Contains(searchLower) ||
+                                (m.Slug ?? "").ToLower().Contains(searchLower))
+                    .ToList();
+            }
+            
             ViewBag.HiddenMovieSlugs = hiddenMovieSlugs;
             ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = response?.Pagination?.TotalPages ?? 1;
-            ViewBag.TotalItems = response?.Pagination?.TotalItems ?? 0;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalItems = totalItems;
+            ViewBag.SearchQuery = search;
+            ViewBag.ShowOnlyHidden = showHidden;
             
             return View(items);
+        }
+
+        /// <summary>
+        /// Tìm kiếm phim real-time (AJAX)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SearchMoviesRealTime(string? q = null, bool showHidden = false)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return Json(new { success = true, movies = new List<dynamic>() });
+            }
+
+            var searchLower = q.ToLower().Trim();
+
+            // Lấy danh sách phim bị ẩn
+            var hiddenMovieSlugs = await _db.CustomMovieTitles
+                .Where(c => c.IsHidden)
+                .Select(c => c.MovieSlug)
+                .ToListAsync();
+
+            // Fetch movies từ API
+            var allMovies = new List<WebMovie.Models.MovieItem>();
+            if (showHidden && hiddenMovieSlugs.Any())
+            {
+                // Fetch tất cả pages để tìm phim ẩn
+                int currentPage = 1;
+                while (currentPage <= 10)
+                {
+                    var response = await _movieApiService.GetAllMoviesForAdminAsync(currentPage, 20);
+                    if (response?.Items == null || !response.Items.Any())
+                        break;
+
+                    allMovies.AddRange(response.Items);
+                    if (currentPage >= (response?.Pagination?.TotalPages ?? 1))
+                        break;
+
+                    currentPage++;
+                }
+                allMovies = allMovies.Where(m => hiddenMovieSlugs.Contains(m.Slug)).ToList();
+            }
+            else
+            {
+                var response = await _movieApiService.GetAllMoviesForAdminAsync(1, 50);
+                allMovies = response?.Items ?? new List<WebMovie.Models.MovieItem>();
+                allMovies = allMovies.Where(m => !hiddenMovieSlugs.Contains(m.Slug)).ToList();
+            }
+
+            // Tìm kiếm
+            var movies = allMovies
+                .Where(m => (m.Name ?? "").ToLower().Contains(searchLower) ||
+                           (m.OriginName ?? "").ToLower().Contains(searchLower) ||
+                           (m.Slug ?? "").ToLower().Contains(searchLower))
+                .Take(20)
+                .Select(m => new
+                {
+                    slug = m.Slug,
+                    name = m.Name,
+                    originName = m.OriginName,
+                    posterUrl = m.PosterUrl,
+                    quality = m.Quality,
+                    isHidden = hiddenMovieSlugs.Contains(m.Slug)
+                })
+                .ToList();
+
+            return Json(new { success = true, movies = movies });
         }
 
         // Edit or create by slug
@@ -179,6 +297,39 @@ namespace WebMovie.Controllers
             }
 
             return View(model);
+        }
+
+        /// <summary>
+        /// Xem chi tiết phim từ Admin
+        /// </summary>
+        public async Task<IActionResult> ViewMovieDetail(string? slug)
+        {
+            if (string.IsNullOrEmpty(slug))
+            {
+                TempData["ErrorMessage"] = "Slug phim không tìm thấy.";
+                return RedirectToAction("ManageMovies");
+            }
+
+            try
+            {
+                var detail = await _movieApiService.GetMovieDetailAsync(slug);
+                if (detail?.Movie == null)
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy thông tin phim từ API.";
+                    return RedirectToAction("ManageMovies");
+                }
+
+                // Kiểm tra nếu phim bị ẩn
+                var isHidden = await _db.CustomMovieTitles.AnyAsync(c => c.MovieSlug == slug && c.IsHidden);
+                ViewBag.IsHidden = isHidden;
+
+                return View("MovieDetail", detail.Movie);
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Lỗi khi lấy thông tin phim: " + ex.Message;
+                return RedirectToAction("ManageMovies");
+            }
         }
 
         [HttpPost]
@@ -432,6 +583,311 @@ namespace WebMovie.Controllers
             }
 
             return RedirectToAction("ManageUsers");
+        }
+
+        // ===== QUẢN LÝ BÌNH LUẬN =====
+        
+        /// <summary>
+        /// Hiển thị danh sách tất cả bình luận (với phân trang)
+        /// </summary>
+        public async Task<IActionResult> ManageComments(int page = 1, int pageSize = 20, string? filterMovie = null)
+        {
+            var query = _db.MovieComments
+                .Include(c => c.User)
+                .AsQueryable();
+
+            // Lọc theo phim nếu có
+            if (!string.IsNullOrEmpty(filterMovie))
+            {
+                query = query.Where(c => c.MovieTitle.Contains(filterMovie) || c.MovieSlug.Contains(filterMovie));
+            }
+
+            // Tính toán phân trang
+            var totalComments = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalComments / (double)pageSize);
+            
+            var comments = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalComments = totalComments;
+            ViewBag.FilterMovie = filterMovie;
+            ViewBag.PageSize = pageSize;
+
+            return View(comments);
+        }
+
+        /// <summary>
+        /// Xem chi tiết bình luận
+        /// </summary>
+        public async Task<IActionResult> CommentDetail(int id)
+        {
+            var comment = await _db.MovieComments
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (comment == null)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy bình luận!";
+                return RedirectToAction("ManageComments");
+            }
+
+            return View(comment);
+        }
+
+        /// <summary>
+        /// Sửa bình luận
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> EditComment(int id, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return Json(new { success = false, message = "Nội dung bình luận không thể trống!" });
+            }
+
+            if (content.Length > 1000)
+            {
+                return Json(new { success = false, message = "Nội dung bình luận không thể vượt quá 1000 ký tự!" });
+            }
+
+            var comment = await _db.MovieComments.FindAsync(id);
+            if (comment == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy bình luận!" });
+            }
+
+            comment.Content = content.Trim();
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                return Json(new { success = true, message = "Bình luận đã được cập nhật!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi khi cập nhật: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Xóa bình luận
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> DeleteComment(int id)
+        {
+            var comment = await _db.MovieComments.FindAsync(id);
+            if (comment == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy bình luận!" });
+            }
+
+            try
+            {
+                _db.MovieComments.Remove(comment);
+                await _db.SaveChangesAsync();
+                return Json(new { success = true, message = "Bình luận đã được xóa!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi khi xóa: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Lấy thống kê bình luận (dùng cho dashboard)
+        /// </summary>
+        public async Task<IActionResult> GetCommentStats()
+        {
+            var totalComments = await _db.MovieComments.CountAsync();
+            var commentsToday = await _db.MovieComments
+                .CountAsync(c => c.CreatedAt >= DateTime.UtcNow.Date);
+            var commentsThisMonth = await _db.MovieComments
+                .CountAsync(c => c.CreatedAt.Year == DateTime.UtcNow.Year 
+                    && c.CreatedAt.Month == DateTime.UtcNow.Month);
+
+            // Lấy top 10 phim có bình luận nhiều nhất
+            var topMoviesWithComments = await _db.MovieComments
+                .GroupBy(c => new { c.MovieSlug, c.MovieTitle })
+                .Select(g => new 
+                { 
+                    MovieSlug = g.Key.MovieSlug,
+                    MovieTitle = g.Key.MovieTitle,
+                    CommentCount = g.Count()
+                })
+                .OrderByDescending(x => x.CommentCount)
+                .Take(10)
+                .ToListAsync();
+
+            // Lấy top 10 người dùng bình luận nhiều nhất
+            var topCommenters = await _db.MovieComments
+                .GroupBy(c => c.UserId)
+                .Select(g => new 
+                { 
+                    UserId = g.Key,
+                    UserName = g.FirstOrDefault()!.User != null ? g.FirstOrDefault()!.User!.UserName : "Unknown",
+                    CommentCount = g.Count()
+                })
+                .OrderByDescending(x => x.CommentCount)
+                .Take(10)
+                .ToListAsync();
+
+            return Json(new 
+            { 
+                totalComments,
+                commentsToday,
+                commentsThisMonth,
+                topMoviesWithComments,
+                topCommenters
+            });
+        }
+
+        /// <summary>
+        /// Xóa tất cả bình luận của một phim
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> DeleteAllCommentsForMovie(string movieSlug)
+        {
+            if (string.IsNullOrEmpty(movieSlug))
+            {
+                return Json(new { success = false, message = "Slug phim không hợp lệ!" });
+            }
+
+            try
+            {
+                var comments = await _db.MovieComments
+                    .Where(c => c.MovieSlug == movieSlug)
+                    .ToListAsync();
+
+                if (comments.Count == 0)
+                {
+                    return Json(new { success = false, message = "Không có bình luận nào cho phim này!" });
+                }
+
+                _db.MovieComments.RemoveRange(comments);
+                await _db.SaveChangesAsync();
+
+                return Json(new 
+                { 
+                    success = true, 
+                    message = $"Đã xóa {comments.Count} bình luận!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi khi xóa: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Xóa tất cả bình luận của một người dùng
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> DeleteAllCommentsFromUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Json(new { success = false, message = "User ID không hợp lệ!" });
+            }
+
+            try
+            {
+                var comments = await _db.MovieComments
+                    .Where(c => c.UserId == userId)
+                    .ToListAsync();
+
+                if (comments.Count == 0)
+                {
+                    return Json(new { success = false, message = "Người dùng này không có bình luận nào!" });
+                }
+
+                _db.MovieComments.RemoveRange(comments);
+                await _db.SaveChangesAsync();
+
+                return Json(new 
+                { 
+                    success = true, 
+                    message = $"Đã xóa {comments.Count} bình luận từ người dùng!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Lỗi khi xóa: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Tìm kiếm bình luận theo nội dung
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SearchComments(string query, int page = 1, int pageSize = 20)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return RedirectToAction("ManageComments");
+            }
+
+            var searchQuery = _db.MovieComments
+                .Include(c => c.User)
+                .Where(c => c.Content.Contains(query) || c.MovieTitle.Contains(query))
+                .AsQueryable();
+
+            var totalComments = await searchQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalComments / (double)pageSize);
+
+            var comments = await searchQuery
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalComments = totalComments;
+            ViewBag.SearchQuery = query;
+            ViewBag.PageSize = pageSize;
+
+            return View("ManageComments", comments);
+        }
+
+        /// <summary>
+        /// Tìm kiếm bình luận real-time (AJAX)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SearchCommentsRealTime(string? q = null)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return Json(new { success = true, comments = new List<dynamic>() });
+            }
+
+            var searchLower = q.ToLower().Trim();
+            
+            var comments = await _db.MovieComments
+                .Include(c => c.User)
+                .Where(c => c.Content.ToLower().Contains(searchLower) || 
+                           c.MovieTitle.ToLower().Contains(searchLower) ||
+                           c.MovieSlug.ToLower().Contains(searchLower))
+                .OrderByDescending(c => c.CreatedAt)
+                .Take(50)  // Giới hạn 50 kết quả
+                .Select(c => new
+                {
+                    id = c.Id,
+                    content = c.Content.Length > 100 ? c.Content.Substring(0, 100) + "..." : c.Content,
+                    movieTitle = c.MovieTitle,
+                    userName = c.User.FullName ?? c.User.UserName,
+                    createdAt = c.CreatedAt.ToString("dd/MM/yyyy HH:mm"),
+                    userId = c.UserId,
+                    movieSlug = c.MovieSlug
+                })
+                .ToListAsync();
+
+            return Json(new { success = true, comments = comments });
         }
     }
 }
